@@ -39,16 +39,15 @@ object Router {
         case Update.Message(Some(user), chat, None, Some(document)) =>
           for {
             _    <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
-            _ <- IO(println("Before getFile")).pure
             file <- telegram.getFile(document.id)
-            _ <- IO(println(file.toString)).pure
-//            _    <- telegram.sendMessage(s"Got document ${document.name.get}, with id = ${document.id}", chat)
+            _ <- println(file.toString).pure[F]
+            _    <- telegram.sendMessage(s"Got document ${document.name.get}, with id = ${document.id}", chat)
 //            _ <- telegram.sendMessage(
 //              s"Downloaded file ${file.path}, with id = ${file.id} and size = ${file.size}",
 //              chat,
 //            )
             content <- telegram.downloadFile(file.path.get)
-            _ <- telegram.sendMessage(s"Content of your file: $content", chat)
+            _ <- println(s"Content = $content").pure
           } yield ()
       }
 
