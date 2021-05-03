@@ -12,7 +12,7 @@ import scala.concurrent.ExecutionContext.global
 object Application extends IOApp {
   def run(args: List[String]): IO[ExitCode] = app[IO]()
 
-  val myToken: Option[String] = Some("1523218139:AAHlQgAo5Ll59eteKS2AiAbxjlVZb4eVGTk")
+  val myToken: Option[String] = Some("1792790353:AAE22Vk7SgPNjXaJ8oH5TLqn_d9KWCbBY54")
 
   def app[F[_]: ConcurrentEffect](): F[ExitCode] =
     for {

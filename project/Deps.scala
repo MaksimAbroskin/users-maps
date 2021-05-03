@@ -2,11 +2,12 @@ import sbt._
 
 object Deps {
   object Versions {
-    val cats    = "2.3.0"
-    val http4s  = "0.21.21"
-    val circe   = "0.12.3"
-    val fs2     = "2.5.0"
-    val logback = "1.2.3"
+    val cats      = "2.3.0"
+    val http4s    = "0.21.21"
+    val circe     = "0.12.3"
+    val fs2       = "2.5.0"
+    val logback   = "1.2.3"
+    val scalatest = "3.2.7"
   }
 
   val cats: Seq[ModuleID] = Seq(
@@ -33,5 +34,10 @@ object Deps {
   ).map(_ % Versions.fs2)
 
   val logback = "ch.qos.logback" % "logback-classic" % Versions.logback
+
+  val tests: Seq[ModuleID] = Seq(
+    "org.scalatest" %% "scalatest",
+    "org.scalactic" %% "scalactic",
+  ).map(_ % Versions.scalatest)
 
 }

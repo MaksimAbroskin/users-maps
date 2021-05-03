@@ -10,7 +10,7 @@ object TelegramModel {
 
   sealed trait Update
   object Update {
-    final case class Message(user: Option[User], chat: Chat, text: Option[String]) extends Update
+    final case class Message(user: Option[User], chat: Chat, text: Option[String], document: Option[Document]) extends Update
     // other update types
   }
 
@@ -21,7 +21,8 @@ object TelegramModel {
           user <- c.get[Option[User]]("from")
           chat <- c.get[Chat]("chat")
           text <- c.get[Option[String]]("text")
-        } yield Update.Message(user, chat, text)
+          document <- c.get[Option[Document]]("document")
+        } yield Update.Message(user, chat, text, document)
       }
 
     implicit val successDecoder: Decoder[Success[Update.Message]] = { (c: HCursor) =>

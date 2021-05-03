@@ -9,7 +9,7 @@ import cats.syntax.functor._
 import cats.syntax.applicative._
 import org.slf4j.LoggerFactory
 import org.http4s.client.Client
-import ru.dins.scalaschool.file_to_map.bot.api.model.{Chat, Offset, TelegramModel}
+import ru.dins.scalaschool.file_to_map.bot.api.model.{Chat, File, Offset, TelegramModel}
 import ru.dins.scalaschool.file_to_map.bot.api.model.TelegramModel.{Success, Update}
 import ru.dins.scalaschool.file_to_map.bot.api.model.TelegramModel.TelegramModelDecoders._
 
@@ -31,6 +31,10 @@ trait TelegramApi[F[_]] {
     * @return
     */
   def sendMessage(text: String, chat: Chat): F[Unit]
+
+  def getFile(id: String): F[File]
+
+  def downloadFile(path: String): F[String]
 }
 
 object TelegramApi {
@@ -72,6 +76,20 @@ object TelegramApi {
 
       // todo parse response and retry on failure
       client.expect[Unit](Request[F](uri = sendMessageUri, method = Method.GET))
+    }
+
+    override def getFile(id: String): F[File] = {
+      val endpoint       = uri / "getFile"
+      val getFileUri = endpoint =? Map("file_id" -> List(id))
+
+      client.expect[File](Request[F](uri = getFileUri, method = Method.GET))
+    }
+
+    override def downloadFile(path: String): F[String] = {
+      //https://api.telegram.org/file/bot<token>/<file_path>
+      val endpoint       = uri"""https://api.telegram.org""" / "file" / s"bot$secret" / path
+
+      client.expect[String](Request[F](uri = endpoint, method = Method.GET))
     }
   }
 }
