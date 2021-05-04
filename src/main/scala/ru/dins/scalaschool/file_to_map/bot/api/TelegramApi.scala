@@ -9,9 +9,13 @@ import cats.syntax.functor._
 import cats.syntax.applicative._
 import org.slf4j.LoggerFactory
 import org.http4s.client.Client
-import ru.dins.scalaschool.file_to_map.bot.api.model.{Chat, File, Offset, TelegramModel}
+import org.http4s.multipart.{Multipart, Part}
+import ru.dins.scalaschool.file_to_map.bot.api.model.{Chat, InputFile, Offset, TelegramModel, File => myFile}
 import ru.dins.scalaschool.file_to_map.bot.api.model.TelegramModel.{Success, Update}
 import ru.dins.scalaschool.file_to_map.bot.api.model.TelegramModel.TelegramModelDecoders._
+
+import java.io.File
+import java.nio.file.Files
 
 trait TelegramApi[F[_]] {
 
@@ -32,9 +36,12 @@ trait TelegramApi[F[_]] {
     */
   def sendMessage(text: String, chat: Chat): F[Unit]
 
-  def getFile(id: String): F[File]
+  def getFile(id: String): F[myFile]
 
   def downloadFile(path: String): F[String]
+
+  def sendDocument(chat: Chat, document: InputFile): F[Unit]
+
 }
 
 object TelegramApi {
@@ -78,11 +85,11 @@ object TelegramApi {
       client.expect[Unit](Request[F](uri = sendMessageUri, method = Method.GET))
     }
 
-    override def getFile(id: String): F[File] = {
+    override def getFile(id: String): F[myFile] = {
       val endpoint       = uri / "getFile"
       val getFileUri = endpoint =? Map("file_id" -> List(id))
 
-      client.expect[File](Request[F](uri = getFileUri, method = Method.GET))
+      client.expect[myFile](Request[F](uri = getFileUri, method = Method.GET))
     }
 
     override def downloadFile(path: String): F[String] = {
@@ -90,6 +97,16 @@ object TelegramApi {
       val endpoint       = uri"""https://api.telegram.org""" / "file" / s"bot$secret" / path
 
       client.expect[String](Request[F](uri = endpoint, method = Method.GET))
+    }
+
+    override def sendDocument(chat: Chat, document: InputFile): F[Unit] = {
+      val endpoint       = uri / "sendDocument"
+      val sendDocumentUri = endpoint =? Map("chat_id" -> List(chat.id.toString))
+
+      val upload = Part.fileData("document", document.filename, Stream.emits(document.contents).covary[F])
+      val multipart = Multipart[F](List(upload).toVector)
+
+      client.expect[Unit](Request[F](method = Method.POST, uri = sendDocumentUri).withHeaders(multipart.headers))
     }
   }
 }
