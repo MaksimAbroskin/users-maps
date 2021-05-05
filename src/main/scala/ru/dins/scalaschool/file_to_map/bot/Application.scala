@@ -1,6 +1,6 @@
 package ru.dins.scalaschool.file_to_map.bot
 
-import cats.effect.{ConcurrentEffect, ExitCode, IO, IOApp, Sync}
+import cats.effect.{ConcurrentEffect, ContextShift, ExitCode, IO, IOApp, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import org.http4s.client.blaze.BlazeClientBuilder
@@ -14,7 +14,7 @@ object Application extends IOApp {
 
   val myToken: Option[String] = Some("1792790353:AAE22Vk7SgPNjXaJ8oH5TLqn_d9KWCbBY54")
 
-  def app[F[_]: ConcurrentEffect](): F[ExitCode] =
+  def app[F[_]: ConcurrentEffect : ContextShift](): F[ExitCode] =
     for {
       token <- Sync[F].fromOption(myToken, new IllegalArgumentException("can't find bot token"))
       _ <- BlazeClientBuilder[F](global).resource

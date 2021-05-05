@@ -1,23 +1,24 @@
 package ru.dins.scalaschool.file_to_map.bot.api
 
-import fs2._
-import org.http4s._
-import org.http4s.implicits._
-import cats.effect.Sync
+import cats.effect.{Blocker, ContextShift, Sync}
+import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import cats.syntax.applicative._
-import org.slf4j.LoggerFactory
+import fs2._
+import org.http4s._
 import org.http4s.client.Client
-import org.http4s.multipart.{Multipart, Part}
-import ru.dins.scalaschool.file_to_map.bot.api.model.{Chat, InputFile, Offset, TelegramModel, File => myFile}
-import ru.dins.scalaschool.file_to_map.bot.api.model.TelegramModel.{Success, Update}
+import org.http4s.client.dsl.Http4sClientDsl
+import org.http4s.implicits._
+import org.slf4j.LoggerFactory
 import ru.dins.scalaschool.file_to_map.bot.api.model.TelegramModel.TelegramModelDecoders._
+import ru.dins.scalaschool.file_to_map.bot.api.model.TelegramModel.{Success, Update}
+import ru.dins.scalaschool.file_to_map.bot.api.model.{Chat, InputFile, Offset, TelegramModel, File => myFile}
 
 import java.io.File
-import java.nio.file.Files
+import java.util.concurrent.Executors
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
-trait TelegramApi[F[_]] {
+trait TelegramApi[F[_]] extends Http4sClientDsl[F] {
 
   /**
     * Stream of updates starting from offset [[ru.dins.scalaschool.api.model.Offset]]
@@ -40,14 +41,14 @@ trait TelegramApi[F[_]] {
 
   def downloadFile(path: String): F[String]
 
-  def sendDocument(chat: Chat, document: InputFile): F[Unit]
+  def sendDocument(chat: Chat, document: InputFile, disable_content_type_detection: Option[Boolean]): F[Unit]
 
 }
 
 object TelegramApi {
   private val logger = LoggerFactory.getLogger("telegram-api")
 
-  def apply[F[_]: Sync](client: Client[F], secret: String): TelegramApi[F] = new TelegramApi[F] {
+  def apply[F[_]: Sync : ContextShift](client: Client[F], secret: String): TelegramApi[F] = new TelegramApi[F] {
     val uri: Uri = uri"""https://api.telegram.org""" / s"bot$secret"
 
     override def getUpdates(startFrom: Offset): Stream[F, Update] = {
@@ -99,14 +100,38 @@ object TelegramApi {
       client.expect[String](Request[F](uri = endpoint, method = Method.GET))
     }
 
-    override def sendDocument(chat: Chat, document: InputFile): F[Unit] = {
+
+    implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(2))
+    import org.http4s.MediaType
+    import org.http4s.headers.`Content-Type`
+    import org.http4s.multipart.{Multipart, Part}
+
+    override def sendDocument(chat: Chat, document: InputFile, disable_content_type_detection: Option[Boolean]): F[Unit] = {
       val endpoint       = uri / "sendDocument"
       val sendDocumentUri = endpoint =? Map("chat_id" -> List(chat.id.toString))
 
-      val upload = Part.fileData("document", document.filename, Stream.emits(document.contents).covary[F])
-      val multipart = Multipart[F](List(upload).toVector)
+      val file = Sync[F].delay(getClass.getResource("src/resources/testFile.txt"))
 
-      client.expect[Unit](Request[F](method = Method.POST, uri = sendDocumentUri).withHeaders(multipart.headers))
+      val f: File = new File("src/resources/testFile.txt")
+
+      val multipart = Multipart[F](
+        Vector(
+          Part.fileData("document", f, Blocker.liftExecutionContext(ec),`Content-Type`(MediaType.multipart.`form-data`))
+        ))
+//      val header1 = Header("Content-Length", "84")
+//      val header2 = Header("Content-Type", "multipart/form-data; boundary=--------------------------790429708334335352404078")
+//      val header3 = Header("charset", "UTF-8")
+      val req = Request[F](method = Method.POST, uri = sendDocumentUri).withEntity(multipart).withHeaders(multipart.headers)
+
+//      val req = Method.POST(multipart, sendDocumentUri).withHeaders()
+//      println(s"body = ${req.body}")
+//      println(s"headers = ${req.headers}")
+//      println(s"queryString = ${req.queryString}")
+//      println(s"uri = ${req.uri}")
+//      println(s"attributes = ${req.attributes}")
+//      println(s"pathInfo = ${req.pathInfo}")
+      client.expect[Unit](req)
     }
   }
 }
+

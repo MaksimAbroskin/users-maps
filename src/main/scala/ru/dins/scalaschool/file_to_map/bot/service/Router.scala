@@ -40,7 +40,7 @@ object Router {
             _ <- telegram.sendMessage(text, chat)
             path = "C:\\_Scala\\DINS_ScalaSchool\\Projects\\FinalProject\\src\\resources\\testFile.txt"
             file = new File(path)
-            _ <- telegram.sendDocument(chat, InputFile(path, new FileInputStream(file).readAllBytes()))
+            _ <- telegram.sendDocument(chat, InputFile(path, new FileInputStream(file).readAllBytes()), Some(true))
 //            _ <- file.close()
           } yield ()
         case Update.Message(Some(user), chat, None, Some(document)) =>
