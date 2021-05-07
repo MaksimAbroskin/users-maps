@@ -8,6 +8,8 @@ object Models {
       address: String,           // not null
 //      phone: Option[String],     // nullable
 //      typeOfHelp: Option[String],// nullable
-  )
+  ) {
+    override def toString: String = s"Note = (n = $name, a = $address)"
+  }
 
 }

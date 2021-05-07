@@ -2,7 +2,6 @@ package ru.dins.scalaschool.file_to_map.bot.service
 
 import cats.Applicative
 import cats.effect.Sync
-import cats.implicits.catsSyntaxApplicativeId
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import org.slf4j.LoggerFactory

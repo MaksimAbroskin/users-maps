@@ -21,7 +21,7 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 trait TelegramApi[F[_]] extends Http4sClientDsl[F] {
 
-  /** Stream of updates starting from offset [[ru.dins.scalaschool.api.model.Offset]]
+  /** Stream of updates starting from offset [[ru.dins.scalaschool.file_to_map.bot.api.model.Offset]]
     *
     * @param startFrom offset to start from
     * @return stream of updates
@@ -124,19 +124,27 @@ object TelegramApi {
         ),
       )
 
-      val req =
-        Request[F](method = Method.POST, uri = sendDocumentUri).withEntity(multipart).withHeaders(multipart.headers)
+      val req = Request[F](method = Method.POST, uri = sendDocumentUri)
+        .withEntity(multipart)
+        .withHeaders(multipart.headers)
 
       client.expect[Unit](req)
     }
 
     override def getCoordinates(addr: String): F[Coordinates] = {
       val geocoderUri: Uri = uri"""https://geocode-maps.yandex.ru/1.x"""
-      val yandexApiKey = "85e83a9b-10f8-4dd2-98db-47687cb13067"
-      //      https://geocode-maps.yandex.ru/1.x?geocode=190121, Санкт-Петербург г, Реки Фонтанки наб, дом № 203&apikey=85e83a9b-10f8-4dd2-98db-47687cb13067&format=json&results=1
-      val getCoordinatesUri = geocoderUri =? Map("geocode" -> List(addr), "apikey" -> List(yandexApiKey), "format" -> List("json"), "results" -> List("1"))
+      val yandexApiKey     = "85e83a9b-10f8-4dd2-98db-47687cb13067"
+      //      https://geocode-maps.yandex.ru/1.x?geocode=<addr>&apikey=<yandexApiKey>&format=json&results=1
+      val getCoordinatesUri = geocoderUri =? Map(
+        "geocode" -> List(addr),
+        "apikey"  -> List(yandexApiKey),
+        "format"  -> List("json"),
+        "results" -> List("1"),
+      )
 
-      client.expect[YandexPoint](Request[F](uri = getCoordinatesUri, method = Method.GET)).map(point => Coordinates.coordinatesFromString(point.pos))
+      client
+        .expect[YandexPoint](Request[F](uri = getCoordinatesUri, method = Method.GET))
+        .map(point => Coordinates.coordinatesFromString(point.pos))
     }
   }
 }

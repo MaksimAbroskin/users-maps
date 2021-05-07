@@ -11,28 +11,37 @@ import scala.concurrent.ExecutionContext
 object FileHandle extends IOApp {
   val blockingExecutionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
 
-  val path          = "C:\\_Scala\\test.csv"
-  val lineSeparator = "'"
+  val path            = "C:\\_Scala\\test.csv"
+  val lineSeparator   = "'"
   val inLineSeparator = ":"
 
-  def stringToNotesList(s: String, lineSeparator: String, inLineSeparator: String): List[Note] = {
-    val strNotes = s.split(lineSeparator).toList.map(s => {
-      val sNote = s.split(inLineSeparator).toList
-      sNote match {
-        case name :: addr :: Nil => Some(Note(name, addr))
-        case _ => None
-      }
-    })
-    strNotes.filterNot(_.isEmpty).map(x => x.get)
-  }
+//  def stringToNotesList(s: String, lineSeparator: String, inLineSeparator: String): List[Note] = {
+//    val strNotes = s.split(lineSeparator).toList.map { s =>
+//      val sNote = s.split(inLineSeparator).toList
+//      sNote match {
+//        case name :: addr :: Nil => Some(Note(name, addr))
+//        case _                   => None
+//      }
+//    }
+//    strNotes.filterNot(_.isEmpty).map(x => x.get)
+//  }
+
+  val blocker: Blocker = Blocker.liftExecutionContext(blockingExecutionContext)
 
   val parser: Stream[IO, Unit] =
-    io.file
-      .readAll[IO](Paths.get(path), Blocker.liftExecutionContext(blockingExecutionContext), 4096)
+  io.file
+      .readAll[IO](Paths.get(path), blocker, 4096)
       .through(text.utf8Decode)
-      .map(x => stringToNotesList(x, lineSeparator, inLineSeparator))
-//      .unNoneTerminate // terminate when done
-      .evalMap(x => IO(println(x)))
+      .map(strNotes =>
+        strNotes.replaceAll("\\s+", "").split(lineSeparator).toList.map { s =>
+          val sNote = s.split(inLineSeparator).toList
+          sNote match {
+            case name :: addr :: Nil => Some(Note(name, addr))
+            case _                   => None
+          }
+        }.filterNot(_.isEmpty).map(_.get),
+      )
+      .evalMap(x => IO(println(s"x = $x")))
 
   val program: IO[Unit] =
     parser.compile.drain.guarantee(IO(blockingExecutionContext.shutdown()))
