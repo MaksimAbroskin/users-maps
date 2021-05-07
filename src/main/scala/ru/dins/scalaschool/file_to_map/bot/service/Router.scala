@@ -1,17 +1,16 @@
 package ru.dins.scalaschool.file_to_map.bot.service
 
 import cats.Applicative
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import cats.implicits.catsSyntaxApplicativeId
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import org.slf4j.LoggerFactory
 import ru.dins.scalaschool.file_to_map.bot.api.TelegramApi
-import ru.dins.scalaschool.file_to_map.bot.api.model.InputFile
 import ru.dins.scalaschool.file_to_map.bot.api.model.TelegramModel.Update
 import ru.dins.scalaschool.file_to_map.bot.service.Router.TelegramUpdateRoute
 
-import java.io.{ByteArrayInputStream, File, FileInputStream}
+import java.io.File
 
 final class Router[F[_]: Applicative] private (routesDefinitions: TelegramUpdateRoute[F[Unit]]*) {
   private val composedRoute =
@@ -38,24 +37,18 @@ object Router {
           for {
             _ <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
             _ <- telegram.sendMessage(text, chat)
-            path = "C:\\_Scala\\DINS_ScalaSchool\\Projects\\FinalProject\\src\\resources\\testFile.txt"
-            file = new File(path)
-            _ <- telegram.sendDocument(chat, InputFile(path, new FileInputStream(file).readAllBytes()), Some(true))
-//            _ <- file.close()
+            point <- telegram.getCoordinates(text)
+            _ <- telegram.sendMessage(point.toString, chat)
+            f: File = new File("src/resources/gisTest.html")
+            _ <- telegram.sendDocument(chat, f)
           } yield ()
+
         case Update.Message(Some(user), chat, None, Some(document)) =>
           for {
             _    <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
             file <- telegram.getFile(document.id)
-            _ <- println(file.toString).pure[F]
-            _    <- telegram.sendMessage(s"Got document ${document.name.get}, with id = ${document.id}", chat)
-//            _ <- telegram.sendMessage(
-//              s"Downloaded file ${file.path}, with id = ${file.id} and size = ${file.size}",
-//              chat,
-//            )
             content <- telegram.downloadFile(file.path.get)
-            _ <- println(s"Content = $content").pure
-//            _ <- telegram.sendDocument(chat, file.id)
+            _    <- telegram.sendMessage(s"Content of document: \n$content", chat)
           } yield ()
       }
 

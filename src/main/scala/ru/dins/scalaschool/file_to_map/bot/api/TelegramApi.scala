@@ -12,7 +12,8 @@ import org.http4s.implicits._
 import org.slf4j.LoggerFactory
 import ru.dins.scalaschool.file_to_map.bot.api.model.TelegramModel.TelegramModelDecoders._
 import ru.dins.scalaschool.file_to_map.bot.api.model.TelegramModel.{Success, Update}
-import ru.dins.scalaschool.file_to_map.bot.api.model.{Chat, InputFile, Offset, TelegramModel, File => myFile}
+import ru.dins.scalaschool.file_to_map.bot.api.model.{Chat, Offset, TelegramModel, YandexPoint, File => myFile}
+import ru.dins.scalaschool.file_to_map.maps.Coordinates
 
 import java.io.File
 import java.util.concurrent.Executors
@@ -20,16 +21,14 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 trait TelegramApi[F[_]] extends Http4sClientDsl[F] {
 
-  /**
-    * Stream of updates starting from offset [[ru.dins.scalaschool.api.model.Offset]]
+  /** Stream of updates starting from offset [[ru.dins.scalaschool.api.model.Offset]]
     *
     * @param startFrom offset to start from
     * @return stream of updates
     */
   def getUpdates(startFrom: Offset): Stream[F, Update]
 
-  /**
-    * Send a text message
+  /** Send a text message
     *
     * @param text text to send
     * @param chat destination chat
@@ -41,20 +40,22 @@ trait TelegramApi[F[_]] extends Http4sClientDsl[F] {
 
   def downloadFile(path: String): F[String]
 
-  def sendDocument(chat: Chat, document: InputFile, disable_content_type_detection: Option[Boolean]): F[Unit]
+  def sendDocument(chat: Chat, document: File): F[Unit]
+
+  def getCoordinates(addr: String): F[Coordinates]
 
 }
 
 object TelegramApi {
   private val logger = LoggerFactory.getLogger("telegram-api")
 
-  def apply[F[_]: Sync : ContextShift](client: Client[F], secret: String): TelegramApi[F] = new TelegramApi[F] {
+  def apply[F[_]: Sync: ContextShift](client: Client[F], secret: String): TelegramApi[F] = new TelegramApi[F] {
     val uri: Uri = uri"""https://api.telegram.org""" / s"bot$secret"
 
     override def getUpdates(startFrom: Offset): Stream[F, Update] = {
       val endpoint = uri / "getUpdates" =? Map(
-          "timeout"         -> List("30")
-        , "allowed_updates" -> List("""["message"]""")
+        "timeout"         -> List("30"),
+        "allowed_updates" -> List("""["message"]"""),
       )
 
       def getListUpdates(offset: Offset): F[List[Success[Update]]] =
@@ -87,7 +88,7 @@ object TelegramApi {
     }
 
     override def getFile(id: String): F[myFile] = {
-      val endpoint       = uri / "getFile"
+      val endpoint   = uri / "getFile"
       val getFileUri = endpoint =? Map("file_id" -> List(id))
 
       client.expect[myFile](Request[F](uri = getFileUri, method = Method.GET))
@@ -95,43 +96,47 @@ object TelegramApi {
 
     override def downloadFile(path: String): F[String] = {
       //https://api.telegram.org/file/bot<token>/<file_path>
-      val endpoint       = uri"""https://api.telegram.org""" / "file" / s"bot$secret" / path
+      val endpoint = uri"""https://api.telegram.org""" / "file" / s"bot$secret" / path
 
       client.expect[String](Request[F](uri = endpoint, method = Method.GET))
     }
-
 
     implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(2))
     import org.http4s.MediaType
     import org.http4s.headers.`Content-Type`
     import org.http4s.multipart.{Multipart, Part}
 
-    override def sendDocument(chat: Chat, document: InputFile, disable_content_type_detection: Option[Boolean]): F[Unit] = {
-      val endpoint       = uri / "sendDocument"
+    override def sendDocument(
+        chat: Chat,
+        document: File,
+    ): F[Unit] = {
+      val endpoint        = uri / "sendDocument"
       val sendDocumentUri = endpoint =? Map("chat_id" -> List(chat.id.toString))
-
-      val file = Sync[F].delay(getClass.getResource("src/resources/testFile.txt"))
-
-      val f: File = new File("src/resources/testFile.txt")
 
       val multipart = Multipart[F](
         Vector(
-          Part.fileData("document", f, Blocker.liftExecutionContext(ec),`Content-Type`(MediaType.multipart.`form-data`))
-        ))
-//      val header1 = Header("Content-Length", "84")
-//      val header2 = Header("Content-Type", "multipart/form-data; boundary=--------------------------790429708334335352404078")
-//      val header3 = Header("charset", "UTF-8")
-      val req = Request[F](method = Method.POST, uri = sendDocumentUri).withEntity(multipart).withHeaders(multipart.headers)
+          Part.fileData(
+            "document",
+            document,
+            Blocker.liftExecutionContext(ec),
+            `Content-Type`(MediaType.multipart.`form-data`),
+          ),
+        ),
+      )
 
-//      val req = Method.POST(multipart, sendDocumentUri).withHeaders()
-//      println(s"body = ${req.body}")
-//      println(s"headers = ${req.headers}")
-//      println(s"queryString = ${req.queryString}")
-//      println(s"uri = ${req.uri}")
-//      println(s"attributes = ${req.attributes}")
-//      println(s"pathInfo = ${req.pathInfo}")
+      val req =
+        Request[F](method = Method.POST, uri = sendDocumentUri).withEntity(multipart).withHeaders(multipart.headers)
+
       client.expect[Unit](req)
+    }
+
+    override def getCoordinates(addr: String): F[Coordinates] = {
+      val geocoderUri: Uri = uri"""https://geocode-maps.yandex.ru/1.x"""
+      val yandexApiKey = "85e83a9b-10f8-4dd2-98db-47687cb13067"
+      //      https://geocode-maps.yandex.ru/1.x?geocode=190121, Санкт-Петербург г, Реки Фонтанки наб, дом № 203&apikey=85e83a9b-10f8-4dd2-98db-47687cb13067&format=json&results=1
+      val getCoordinatesUri = geocoderUri =? Map("geocode" -> List(addr), "apikey" -> List(yandexApiKey), "format" -> List("json"), "results" -> List("1"))
+
+      client.expect[YandexPoint](Request[F](uri = getCoordinatesUri, method = Method.GET)).map(point => Coordinates.coordinatesFromString(point.pos))
     }
   }
 }
-

@@ -26,6 +26,7 @@ object Deps {
     "io.circe" %% "circe-core",
     "io.circe" %% "circe-generic",
     "io.circe" %% "circe-parser",
+    "io.circe" %% "circe-literal",
   ).map(_ % Versions.circe)
 
   val fs2: Seq[ModuleID] = Seq(
