@@ -6,6 +6,7 @@ import cats.syntax.functor._
 import org.http4s.client.blaze.BlazeClientBuilder
 import ru.dins.scalaschool.file_to_map.bot.api.TelegramApi
 import ru.dins.scalaschool.file_to_map.bot.service.TelegramService
+import ru.dins.scalaschool.file_to_map.maps.yandex.YaGeocoder
 
 import scala.concurrent.ExecutionContext.global
 
@@ -20,7 +21,8 @@ object Application extends IOApp {
       _ <- BlazeClientBuilder[F](global).resource
         .use { client =>
           val telegram = TelegramApi(client, token)
-          TelegramService.start(telegram)
+          val geocoder = YaGeocoder(client)
+          TelegramService.start(telegram, geocoder, client)
         }
     } yield ExitCode.Success
 }

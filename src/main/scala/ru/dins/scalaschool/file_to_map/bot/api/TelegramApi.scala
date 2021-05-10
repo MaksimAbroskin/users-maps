@@ -12,7 +12,7 @@ import org.http4s.implicits._
 import org.slf4j.LoggerFactory
 import ru.dins.scalaschool.file_to_map.bot.api.model.TelegramModel.TelegramModelDecoders._
 import ru.dins.scalaschool.file_to_map.bot.api.model.TelegramModel.{Success, Update}
-import ru.dins.scalaschool.file_to_map.bot.api.model.{Chat, Offset, TelegramModel, YandexPoint, File => myFile}
+import ru.dins.scalaschool.file_to_map.bot.api.model.{Chat, Offset, TelegramModel, File => myFile}
 import ru.dins.scalaschool.file_to_map.maps.Coordinates
 
 import java.io.File
@@ -42,7 +42,7 @@ trait TelegramApi[F[_]] extends Http4sClientDsl[F] {
 
   def sendDocument(chat: Chat, document: File): F[Unit]
 
-  def getCoordinates(addr: String): F[Coordinates]
+//  def getCoordinates(addr: String): F[Coordinates]
 
 }
 
@@ -131,20 +131,20 @@ object TelegramApi {
       client.expect[Unit](req)
     }
 
-    override def getCoordinates(addr: String): F[Coordinates] = {
-      val geocoderUri: Uri = uri"""https://geocode-maps.yandex.ru/1.x"""
-      val yandexApiKey     = "85e83a9b-10f8-4dd2-98db-47687cb13067"
-      //      https://geocode-maps.yandex.ru/1.x?geocode=<addr>&apikey=<yandexApiKey>&format=json&results=1
-      val getCoordinatesUri = geocoderUri =? Map(
-        "geocode" -> List(addr),
-        "apikey"  -> List(yandexApiKey),
-        "format"  -> List("json"),
-        "results" -> List("1"),
-      )
-
-      client
-        .expect[YandexPoint](Request[F](uri = getCoordinatesUri, method = Method.GET))
-        .map(point => Coordinates.coordinatesFromString(point.pos))
-    }
+//    override def getCoordinates(addr: String): F[Coordinates] = {
+//      val geocoderUri: Uri = uri"""https://geocode-maps.yandex.ru/1.x"""
+//      val yandexApiKey     = "85e83a9b-10f8-4dd2-98db-47687cb13067"
+//      //      https://geocode-maps.yandex.ru/1.x?geocode=<addr>&apikey=<yandexApiKey>&format=json&results=1
+//      val getCoordinatesUri = geocoderUri =? Map(
+//        "geocode" -> List(addr),
+//        "apikey"  -> List(yandexApiKey),
+//        "format"  -> List("json"),
+//        "results" -> List("1"),
+//      )
+//
+//      client
+//        .expect[YandexPoint](Request[F](uri = getCoordinatesUri, method = Method.GET))
+//        .map(point => Coordinates.coordinatesFromString(point.pos))
+//    }
   }
 }

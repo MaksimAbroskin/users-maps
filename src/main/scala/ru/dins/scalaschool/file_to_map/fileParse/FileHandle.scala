@@ -28,7 +28,7 @@ object FileHandle extends IOApp {
 
   val blocker: Blocker = Blocker.liftExecutionContext(blockingExecutionContext)
 
-  val parser: Stream[IO, Unit] =
+  val parser: Stream[IO, Note] =
   io.file
       .readAll[IO](Paths.get(path), blocker, 4096)
       .through(text.utf8Decode)
@@ -40,8 +40,9 @@ object FileHandle extends IOApp {
             case _                   => None
           }
         }.filterNot(_.isEmpty).map(_.get),
-      )
-      .evalMap(x => IO(println(s"x = $x")))
+      ).flatMap(x => fs2.Stream.apply(x: _*))
+    .evalTap(x => IO(println(s"x = $x")))
+//    .evalTap(x => IO(println(s"x = $x")))
 
   val program: IO[Unit] =
     parser.compile.drain.guarantee(IO(blockingExecutionContext.shutdown()))
