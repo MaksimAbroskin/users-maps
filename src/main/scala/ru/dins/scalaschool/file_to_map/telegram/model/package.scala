@@ -1,4 +1,4 @@
-package ru.dins.scalaschool.file_to_map.bot.api
+package ru.dins.scalaschool.file_to_map.telegram
 
 import cats.effect.Sync
 import io.circe.{Decoder, Encoder}

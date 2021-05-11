@@ -4,9 +4,8 @@ import cats.effect.{ConcurrentEffect, ContextShift, ExitCode, IO, IOApp, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import org.http4s.client.blaze.BlazeClientBuilder
-import ru.dins.scalaschool.file_to_map.bot.api.TelegramApi
-import ru.dins.scalaschool.file_to_map.bot.service.TelegramService
-import ru.dins.scalaschool.file_to_map.maps.yandex.YaGeocoder
+import telegram.TelegramApi
+import maps.yandex.YaGeocoder
 
 import scala.concurrent.ExecutionContext.global
 
@@ -22,7 +21,7 @@ object Application extends IOApp {
         .use { client =>
           val telegram = TelegramApi(client, token)
           val geocoder = YaGeocoder(client)
-          TelegramService.start(telegram, geocoder, client)
+          Service.start(telegram, geocoder)
         }
     } yield ExitCode.Success
 }

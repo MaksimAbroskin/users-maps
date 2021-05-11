@@ -1,4 +1,4 @@
-package ru.dins.scalaschool.file_to_map.bot.api.model
+package ru.dins.scalaschool.file_to_map.telegram.model
 
 import cats.syntax.either._
 import io.circe._
@@ -9,26 +9,24 @@ object TelegramModel {
   final case class Success[+A](offset: Offset, data: A)
 
   sealed trait Update
-  object Update {
-    final case class Message(user: Option[User], chat: Chat, text: Option[String], document: Option[Document]) extends Update
+  case class Message(user: Option[User], chat: Chat, text: Option[String], document: Option[Document]) extends Update
     // other update types
-  }
 
   object TelegramModelDecoders {
-    implicit val messageDecoder: Decoder[Update.Message] =
+    implicit val messageDecoder: Decoder[Message] =
       (c: HCursor) => {
         for {
           user <- c.get[Option[User]]("from")
           chat <- c.get[Chat]("chat")
           text <- c.get[Option[String]]("text")
           document <- c.get[Option[Document]]("document")
-        } yield Update.Message(user, chat, text, document)
+        } yield Message(user, chat, text, document)
       }
 
-    implicit val successDecoder: Decoder[Success[Update.Message]] = { (c: HCursor) =>
+    implicit val successDecoder: Decoder[Success[Message]] = { (c: HCursor) =>
       for {
         offset <- c.get[Offset]("update_id")
-        update <- c.get[Update.Message]("message")
+        update <- c.get[Message]("message")
       } yield Success(offset, update)
     }
 
@@ -42,7 +40,7 @@ object TelegramModel {
     implicit val updateDecoder: Decoder[Response] = { (c: HCursor) =>
       c.get[Boolean]("ok")
         .flatMap(isOk =>
-          if (isOk) c.downField("result").as[List[Success[Update.Message]]].map(sc => Response(sc.asRight))
+          if (isOk) c.downField("result").as[List[Success[Message]]].map(sc => Response(sc.asRight))
           else c.as[Failure].map(flr => Response(flr.asLeft))
         )
     }

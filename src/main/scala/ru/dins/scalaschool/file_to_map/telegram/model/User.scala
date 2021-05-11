@@ -1,4 +1,4 @@
-package ru.dins.scalaschool.file_to_map.bot.api.model
+package ru.dins.scalaschool.file_to_map.telegram.model
 
 import io.circe.{Decoder, HCursor}
 
