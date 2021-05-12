@@ -1,7 +1,7 @@
 package ru.dins.scalaschool.file_to_map.maps
 
 case class Coordinates(longitude: Double, latitude: Double) {
-  override def toString: String = s"$longitude $latitude"
+  val asList = List(longitude, latitude)
 }
 
 object Coordinates {

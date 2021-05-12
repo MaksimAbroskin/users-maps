@@ -10,13 +10,13 @@ import java.nio.file.Paths
 
 object Main extends IOApp {
 
-  val mockUpstream: Stream[IO, Int]     = Stream.iterate(0)(_ + 1).take(100).covary[IO]
-  val s                                 = "hahaha"
-  val mockUpstream2: Stream[IO, String] = Stream(s)
-  val mockUpstream3: Stream[IO, String] = Stream(" gigigi")
-
-  val data = YaData(features = List(YaOneFeature(Note(name = "name", address =  "addr"))))
-  val mockData: Stream[IO, String] = Stream(data.asJson.toString())
+//  val mockUpstream: Stream[IO, Int]     = Stream.iterate(0)(_ + 1).take(100).covary[IO]
+//  val s                                 = "hahaha"
+//  val mockUpstream2: Stream[IO, String] = Stream(s)
+//  val mockUpstream3: Stream[IO, String] = Stream(" gigigi")
+//
+//  val data = YaData(features = List(YaOneFeature(Note(name = "name", address =  "addr"))))
+//  val mockData: Stream[IO, String] = Stream(data.asJson.toString())
 
 //  def writeToFileExample: IO[Unit] =
 //    (for {
@@ -41,15 +41,16 @@ object Main extends IOApp {
 //        )
 //    } yield ()).compile.drain
 
-  def toFile(fileName: String, upstream: Stream[IO, String], blocker: Blocker): Stream[IO, Unit] =
-    upstream.through(text.utf8Encode).through(io.file.writeAll(Paths.get(fileName), blocker))
+//  def toFile(fileName: String, upstream: Stream[IO, String], blocker: Blocker): Stream[IO, Unit] =
+//    upstream.through(text.utf8Encode).through(io.file.writeAll(Paths.get(fileName), blocker))
 
-  override def run(args: List[String]): IO[ExitCode] = {
-    val prog = for {
-      _ <- Stream
-        .resource(Blocker[IO])
-        .flatMap(blocker => toFile("src/main/resources/testFile.txt", mockUpstream2 ++ mockData ++ mockUpstream3, blocker))
-    } yield ()
-    prog.compile.drain.as(ExitCode.Success)
-  }
+  override def run(args: List[String]): IO[ExitCode] = ???
+//  {
+//    val prog = for {
+//      _ <- Stream
+//        .resource(Blocker[IO])
+//        .flatMap(blocker => toFile("src/main/resources/testFile.txt", mockUpstream2 ++ mockData ++ mockUpstream3, blocker))
+//    } yield ()
+//    prog.compile.drain.as(ExitCode.Success)
+//  }
 }

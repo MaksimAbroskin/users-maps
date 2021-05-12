@@ -11,9 +11,10 @@ object FileParser {
       .replaceAll(System.lineSeparator(), "")
       .split(lineSeparator)
       .toList
+      .zipWithIndex
       .map(line =>
-        line.split(inLineSeparator).toList match {
-          case name :: address :: Nil => Some(Note(name = name, address = address))
+        line._1.split(inLineSeparator).toList match {
+          case name :: address :: Nil => Some(Note(id = line._2, name = name, address = address))
           case _                      => None
         },
       )

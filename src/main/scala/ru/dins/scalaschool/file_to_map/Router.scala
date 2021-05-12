@@ -10,6 +10,7 @@ import ru.dins.scalaschool.file_to_map.maps.GeocoderApi
 import ru.dins.scalaschool.file_to_map.maps.yandex.YaPointToMap._
 import ru.dins.scalaschool.file_to_map.maps.yandex.{HtmlHandler, YaPointToMap}
 import ru.dins.scalaschool.file_to_map.telegram.TelegramApi
+import ru.dins.scalaschool.file_to_map.telegram.model.Chat
 import ru.dins.scalaschool.file_to_map.telegram.model.TelegramModel.{Message, Update}
 
 import java.io.File
@@ -24,6 +25,7 @@ final class Router[F[_]: Applicative] private (routesDefinitions: Router.Telegra
 
 object Router {
   private val routerLogger = LoggerFactory.getLogger("telegram-service")
+  private def path(chat: Chat) = s"src/main/resources/usersPoints/chat_${chat.id.toString}_Map.html"
 
   // represent a way of processing some type of update from user
   final case class TelegramUpdateRoute[O](name: String)(val definition: PartialFunction[Update, O]) {
@@ -54,8 +56,8 @@ object Router {
             notes =         FileParser.parse(content)
             enrichedNotes   <- geocoder.enrichNotes(notes)
             jsonNotes = enrichedNotes.map(x => YaOneFeature(x))
-            _ <- HtmlHandler[F].program("src/main/resources/testFile.html", fs2.Stream(jsonNotes.asJson.toString()))
-            _ <- telegram.sendDocument(chat, new File("src/main/resources/testFile.html"))
+            _ <- HtmlHandler[F].program(path(chat), fs2.Stream(YaData(features = jsonNotes).asJson.toString()))
+            _ <- telegram.sendDocument(chat, new File(path(chat)))
           } yield ()
       }
 
