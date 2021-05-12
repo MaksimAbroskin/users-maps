@@ -6,7 +6,7 @@ object Models {
 
   // represent location with name, address and geographical coordinates
   case class Note(
-//      id: Int,                   // not null
+      id: Int = 0,                   // not null
       name: String,    // not null
       address: String, // not null
       coordinates: Option[Coordinates] = None,

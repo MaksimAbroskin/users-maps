@@ -13,7 +13,7 @@ object FileParser {
       .toList
       .map(line =>
         line.split(inLineSeparator).toList match {
-          case name :: address :: Nil => Some(Note(name, address))
+          case name :: address :: Nil => Some(Note(name = name, address = address))
           case _                      => None
         },
       )

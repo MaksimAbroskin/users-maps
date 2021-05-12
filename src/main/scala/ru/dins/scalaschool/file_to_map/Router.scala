@@ -1,13 +1,16 @@
 package ru.dins.scalaschool.file_to_map
 
 import cats.Applicative
-import cats.effect.Sync
+import cats.effect.{ContextShift, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
+import io.circe.syntax.EncoderOps
 import org.slf4j.LoggerFactory
-import telegram.TelegramApi
-import telegram.model.TelegramModel.{Message, Update}
-import maps.GeocoderApi
+import ru.dins.scalaschool.file_to_map.maps.GeocoderApi
+import ru.dins.scalaschool.file_to_map.maps.yandex.YaPointToMap._
+import ru.dins.scalaschool.file_to_map.maps.yandex.{HtmlHandler, YaPointToMap}
+import ru.dins.scalaschool.file_to_map.telegram.TelegramApi
+import ru.dins.scalaschool.file_to_map.telegram.model.TelegramModel.{Message, Update}
 
 import java.io.File
 
@@ -29,7 +32,7 @@ object Router {
 
   def apply[F[_]: Sync](routes: TelegramUpdateRoute[F[Unit]]*): Router[F] = new Router[F](routes: _*)
 
-  def apply[F[_]: Sync](
+  def apply[F[_]: Sync : ContextShift](
                          telegram: TelegramApi[F],
                          geocoder: GeocoderApi[F],
   ): Router[F] = {
@@ -50,8 +53,9 @@ object Router {
             content         <- telegram.downloadFile(file.path.get)
             notes =         FileParser.parse(content)
             enrichedNotes   <- geocoder.enrichNotes(notes)
-            _               <- Sync[F].delay(enrichedNotes.foreach(note => println(s"note = $note")))
-            _ <- telegram.sendDocument(chat, new File("src/main/resources/object_manager.html"))
+            jsonNotes = enrichedNotes.map(x => YaOneFeature(x))
+            _ <- HtmlHandler[F].program("src/main/resources/testFile.html", fs2.Stream(jsonNotes.asJson.toString()))
+            _ <- telegram.sendDocument(chat, new File("src/main/resources/testFile.html"))
           } yield ()
       }
 

@@ -48,7 +48,7 @@ object TelegramApi {
   def apply[F[_]: Sync: ContextShift](client: Client[F], secret: String): TelegramApi[F] = new TelegramApi[F] {
     val uri: Uri = uri"""https://api.telegram.org""" / s"bot$secret"
 
-    val endpoint: Uri = uri / "getUpdates" =? Map(
+    val getUpdatesEndpoint: Uri = uri / "getUpdates" =? Map(
       "timeout"         -> List("30"),
       "allowed_updates" -> List("""["message"]"""),
     )
@@ -56,7 +56,7 @@ object TelegramApi {
     override def getUpdates(startFrom: Offset): Stream[F, Update] = {
       def getListUpdates(offset: Offset): F[List[Success[Update]]] =
         client
-          .expect[TelegramModel.Response](Request[F](uri = endpoint +? ("offset", offset.value), method = Method.GET))
+          .expect[TelegramModel.Response](Request[F](uri = getUpdatesEndpoint +? ("offset", offset.value), method = Method.GET))
           .flatMap { response =>
             response.data match {
               case Left(flr)      => Sync[F].delay(logger.info(s"received failure from telegram: $flr")).as(List.empty)

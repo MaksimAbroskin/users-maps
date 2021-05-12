@@ -7,6 +7,6 @@ case class Coordinates(longitude: Double, latitude: Double) {
 object Coordinates {
   def coordinatesFromString(s: String): Coordinates = {
     val c = s.split(" ").toList.map(_.toDouble)
-    Coordinates(c.head, c(1))
+    Coordinates(c(1), c.head)
   }
 }

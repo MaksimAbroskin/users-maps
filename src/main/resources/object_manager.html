@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Оптимальное добавление множества меток</title>
+    <title>User maps</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <!--
         Укажите свой API-ключ. Тестовый ключ НЕ БУДЕТ работать на других сайтах.
@@ -14,8 +14,8 @@
 
     function init () {
         var myMap = new ymaps.Map('map', {
-                center: [55.76, 37.64],
-                zoom: 10
+                center: [59.943963, 30.225007],
+                zoom: 11
             }, {
                 searchControlProvider: 'yandex#search'
             }),
@@ -29,14 +29,47 @@
 
         // Чтобы задать опции одиночным объектам и кластерам,
         // обратимся к дочерним коллекциям ObjectManager.
-        objectManager.objects.options.set('preset', 'islands#greenDotIcon');
-        objectManager.clusters.options.set('preset', 'islands#greenClusterIcons');
+        objectManager.objects.options.set('preset', 'islands#DotIcon');
+        objectManager.clusters.options.set('preset', 'islands#ClusterIcons');
         myMap.geoObjects.add(objectManager);
 
         objectManager.add({
         "type": "FeatureCollection",
         "features": [
-            {"type": "Feature", "id": 0, "geometry": {"type": "Point", "coordinates": [59.934605, 30.334787]}}
+            {
+			"type": "Feature",
+			"id": 0,
+			"geometry":
+			{
+				"type": "Point",
+				"coordinates": [59.924392, 30.384078]
+			},
+				"properties":
+				{
+					"balloonContentHeader":"<font size=3><b>Название организации</b></font>",
+					"balloonContentBody": "<p>Информация об организации</p>",
+					"balloonContentFooter": "<font size=1>Abroskin's edition</font>",
+					"clusterCaption": "Организация 1",
+					"hintContent": "<strong>Всплывающая подсказка (название организации)</strong>"
+				}
+		},
+            {
+			"type": "Feature",
+			"id": 1,
+			"geometry":
+			{
+				"type": "Point",
+				"coordinates": [59.924392, 30.388078]
+			},
+				"properties":
+				{
+					"balloonContentHeader":"<font size=3><b>Название организации 2</b></font>",
+					"balloonContentBody": "<p>Информация об организации 2</p>",
+					"balloonContentFooter": "<font size=1>Abroskin's edition</font>",
+					"clusterCaption": "Организация 2",
+					"hintContent": "<strong>Всплывающая подсказка 2 (название организации 2)</strong>"
+				}
+		}
         ]
     });
     
