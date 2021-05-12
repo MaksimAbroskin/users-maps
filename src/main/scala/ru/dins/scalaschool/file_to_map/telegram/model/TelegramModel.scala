@@ -10,6 +10,9 @@ object TelegramModel {
 
   sealed trait Update
   case class Message(user: Option[User], chat: Chat, text: Option[String], document: Option[Document]) extends Update
+  case class MessageUpdate(user: Option[User], chat: Chat, text: String) extends Update
+  case class DocumentUpdate(user: Option[User], chat: Chat, text: Option[String], document: Document) extends Update
+  case class UnprocessableUpdate(chat: Chat) extends Update
     // other update types
 
   object TelegramModelDecoders {

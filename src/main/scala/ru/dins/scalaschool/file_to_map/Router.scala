@@ -11,7 +11,7 @@ import ru.dins.scalaschool.file_to_map.maps.yandex.YaPointToMap._
 import ru.dins.scalaschool.file_to_map.maps.yandex.{HtmlHandler, YaPointToMap}
 import ru.dins.scalaschool.file_to_map.telegram.TelegramApi
 import ru.dins.scalaschool.file_to_map.telegram.model.Chat
-import ru.dins.scalaschool.file_to_map.telegram.model.TelegramModel.{Message, Update}
+import ru.dins.scalaschool.file_to_map.telegram.model.TelegramModel.{Message, UnprocessableUpdate, Update}
 
 import java.io.File
 
@@ -24,7 +24,7 @@ final class Router[F[_]: Applicative] private (routesDefinitions: Router.Telegra
 }
 
 object Router {
-  private val routerLogger = LoggerFactory.getLogger("telegram-service")
+  private val routerLogger     = LoggerFactory.getLogger("telegram-service")
   private def path(chat: Chat) = s"src/main/resources/usersPoints/chat_${chat.id.toString}_Map.html"
 
   // represent a way of processing some type of update from user
@@ -34,31 +34,34 @@ object Router {
 
   def apply[F[_]: Sync](routes: TelegramUpdateRoute[F[Unit]]*): Router[F] = new Router[F](routes: _*)
 
-  def apply[F[_]: Sync : ContextShift](
-                         telegram: TelegramApi[F],
-                         geocoder: GeocoderApi[F],
+  def apply[F[_]: Sync: ContextShift](
+      telegram: TelegramApi[F],
+      geocoder: GeocoderApi[F],
   ): Router[F] = {
     val messageOnlyRoute: TelegramUpdateRoute[F[Unit]] =
       TelegramUpdateRoute("user-message-only") {
-//        case Message(Some(user), chat, Some(text), None) =>
-//          for {
-//            _ <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
-//            _ <- telegram.sendMessage(text, chat)
-//            f: File = new File("src/resources/gisTest.html")
-//            _ <- telegram.sendDocument(chat, f)
-//          } yield ()
+        case Message(Some(user), chat, Some(text), None) =>
+          for {
+            _ <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
+            _ <- telegram.sendMessage(text, chat)
+          } yield ()
 
         case Message(Some(user), chat, None, Some(document)) =>
           for {
-            _               <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
-            file            <- telegram.getFile(document.id)
-            content         <- telegram.downloadFile(file.path.get)
-            notes =         FileParser.parse(content)
-            enrichedNotes   <- geocoder.enrichNotes(notes)
+            _       <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
+            file    <- telegram.getFile(document.id)
+            content <- telegram.downloadFile(file.path.get)
+            notes = FileParser.parse(content)
+            enrichedNotes <- geocoder.enrichNotes(notes)
             jsonNotes = enrichedNotes.map(x => YaOneFeature(x))
             _ <- HtmlHandler[F].program(path(chat), fs2.Stream(YaData(features = jsonNotes).asJson.toString()))
             _ <- telegram.sendDocument(chat, new File(path(chat)))
           } yield ()
+
+//        case UnprocessableUpdate(chat) =>
+//          for {
+//            _ <- telegram.sendMessage("Unprocessable command", chat)
+//          } yield ()
       }
 
     Router(messageOnlyRoute)

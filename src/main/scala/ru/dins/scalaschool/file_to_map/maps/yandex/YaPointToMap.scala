@@ -66,7 +66,12 @@ object YaPointToMap {
     def apply(note: Note): YaOneFeature = new YaOneFeature(
       id = note.id,
       geometry = YaGeometry(coordinates = note.coordinates.get.asList),
-      properties = YaProperties(balloonContentHeader = note.name, balloonContentBody = note.address),
+      properties = YaProperties(
+        balloonContentHeader = note.name,
+        balloonContentBody = note.address,
+        clusterCaption = s"Note #${note.id}",
+        hintContent = note.name,
+      ),
     )
 
   }
