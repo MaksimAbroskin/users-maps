@@ -6,7 +6,7 @@ object Models {
 
   // represent location with name, address and geographical coordinates
   case class Note(
-      id: Int = 0,                   // not null
+      id: Int,         // not null
       name: String,    // not null
       address: String, // not null
       coordinates: Option[Coordinates] = None,
@@ -14,6 +14,25 @@ object Models {
 //      typeOfHelp: Option[String],// nullable
   ) {
     override def toString: String = s"Note = (n = $name, a = $address, coord = $coordinates)"
+  }
+
+  trait ErrorMessage {
+    val message: String
+  }
+
+  case class FileParsingError(failedRow: String) extends ErrorMessage {
+    override val message: String =
+      s"""File parsing error!
+         |Too much rows didn't parsed. Example of failed row:
+         |    $failedRow
+         |
+         |Recommendations:
+         |  1) Compare your document delimiters with bot /settings
+         |  2) Check amount and content of fields in your document""".stripMargin
+  }
+
+  case class Err() extends ErrorMessage {
+    override val message: String = ""
   }
 
 }

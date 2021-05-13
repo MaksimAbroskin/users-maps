@@ -1,7 +1,8 @@
 package ru.dins.scalaschool.file_to_map.maps.yandex
 
+import io.circe.generic.semiauto.deriveEncoder
 import io.circe.syntax.EncoderOps
-import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe.{Encoder, Json}
 import ru.dins.scalaschool.file_to_map.Models.Note
 
 object YaPointToMap {
@@ -10,36 +11,12 @@ object YaPointToMap {
       balloonContentHeader: String,
       balloonContentBody: String,
       balloonContentFooter: String = "<font size=1>Abroskin's edition</font>",
-      clusterCaption: String = "Организация N", // as balloonContentHeader
-      hintContent: String = "<strong>Всплывающая подсказка (название организации)</strong>",
+      clusterCaption: String,
+      hintContent: String,
   )
 
   object YaProperties {
-    implicit val decoder: Decoder[YaProperties] =
-      (c: HCursor) => {
-        for {
-          balloonContentHeader <- c.get[String]("balloonContentHeader")
-          balloonContentBody   <- c.get[String]("balloonContentBody")
-          balloonContentFooter <- c.get[String]("balloonContentFooter")
-          clusterCaption       <- c.get[String]("clusterCaption")
-          hintContent          <- c.get[String]("hintContent")
-        } yield YaProperties(
-          balloonContentHeader,
-          balloonContentBody,
-          balloonContentFooter,
-          clusterCaption,
-          hintContent,
-        )
-      }
-
-    implicit val encoder: Encoder[YaProperties] = (p: YaProperties) =>
-      Json.obj(
-        ("balloonContentHeader", Json.fromString(p.balloonContentHeader)),
-        ("balloonContentBody", Json.fromString(p.balloonContentBody)),
-        ("balloonContentFooter", Json.fromString(p.balloonContentFooter)),
-        ("clusterCaption", Json.fromString(p.clusterCaption)),
-        ("hintContent", Json.fromString(p.hintContent)),
-      )
+    implicit val encoder: Encoder[YaProperties] = deriveEncoder
   }
 
   case class YaGeometry(theType: String = "Point", coordinates: List[Double])

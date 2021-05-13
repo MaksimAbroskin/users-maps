@@ -6,7 +6,7 @@ import fs2._
 import ru.dins.scalaschool.file_to_map.Models.Note
 import ru.dins.scalaschool.file_to_map.maps.yandex.YaPointToMap.{YaData, YaOneFeature}
 
-import java.nio.file.Paths
+import java.nio.file.{Files, Paths}
 
 object Main extends IOApp {
 
@@ -45,7 +45,10 @@ object Main extends IOApp {
 //    upstream.through(text.utf8Encode).through(io.file.writeAll(Paths.get(fileName), blocker))
 
   override def run(args: List[String]): IO[ExitCode] = ???
-//  {
+
+
+
+  //  {
 //    val prog = for {
 //      _ <- Stream
 //        .resource(Blocker[IO])

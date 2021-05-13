@@ -3,7 +3,7 @@ package ru.dins.scalaschool.file_to_map.maps.yandex
 import cats.effect.{Blocker, ContextShift, Sync}
 import fs2.{Stream, io, text}
 
-import java.nio.file.Paths
+import java.nio.file.{Files, Paths}
 
 final case class HtmlHandler[F[_]: Sync: ContextShift]() {
   val prefix: Stream[F, String] = Stream("""<!DOCTYPE html>

@@ -7,11 +7,11 @@ import cats.syntax.functor._
 import io.circe.syntax.EncoderOps
 import org.slf4j.LoggerFactory
 import ru.dins.scalaschool.file_to_map.maps.GeocoderApi
-import ru.dins.scalaschool.file_to_map.maps.yandex.YaPointToMap._
-import ru.dins.scalaschool.file_to_map.maps.yandex.{HtmlHandler, YaPointToMap}
-import ru.dins.scalaschool.file_to_map.telegram.TelegramApi
+import ru.dins.scalaschool.file_to_map.maps.yandex.HtmlHandler
+import ru.dins.scalaschool.file_to_map.maps.yandex.YaPointToMap.{YaData, YaOneFeature}
 import ru.dins.scalaschool.file_to_map.telegram.model.Chat
-import ru.dins.scalaschool.file_to_map.telegram.model.TelegramModel.{Message, UnprocessableUpdate, Update}
+import ru.dins.scalaschool.file_to_map.telegram.model.TelegramModel.{Message, Update}
+import ru.dins.scalaschool.file_to_map.telegram.{TelegramApi, TextCommandHandler}
 
 import java.io.File
 
@@ -43,7 +43,8 @@ object Router {
         case Message(Some(user), chat, Some(text), None) =>
           for {
             _ <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
-            _ <- telegram.sendMessage(text, chat)
+            response = TextCommandHandler.handle(text)
+            _ <- telegram.sendMessage(response, chat)
           } yield ()
 
         case Message(Some(user), chat, None, Some(document)) =>
@@ -52,16 +53,23 @@ object Router {
             file    <- telegram.getFile(document.id)
             content <- telegram.downloadFile(file.path.get)
             notes = FileParser.parse(content)
-            enrichedNotes <- geocoder.enrichNotes(notes)
-            jsonNotes = enrichedNotes.map(x => YaOneFeature(x))
-            _ <- HtmlHandler[F].program(path(chat), fs2.Stream(YaData(features = jsonNotes).asJson.toString()))
-            _ <- telegram.sendDocument(chat, new File(path(chat)))
+            _ <- notes match {
+              case Left(err) => telegram.sendMessage(err.message, chat)
+              case Right(list) =>
+                for {
+                  enrichedNotes <- geocoder.enrichNotes(list)
+                  jsonNotes = enrichedNotes.map(x => YaOneFeature(x))
+                  _ <- HtmlHandler[F].program(path(chat), fs2.Stream(YaData(features = jsonNotes).asJson.toString()))
+                  _ <- telegram.sendDocument(chat, new File(path(chat)))
+                } yield ()
+            }
           } yield ()
 
-//        case UnprocessableUpdate(chat) =>
-//          for {
-//            _ <- telegram.sendMessage("Unprocessable command", chat)
-//          } yield ()
+        case Message(Some(user), chat, None, None) =>
+          for {
+            _ <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
+            _ <- telegram.sendMessage("Unprocessable message", chat)
+          } yield ()
       }
 
     Router(messageOnlyRoute)

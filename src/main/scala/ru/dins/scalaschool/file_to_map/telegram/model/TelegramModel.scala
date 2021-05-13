@@ -2,6 +2,7 @@ package ru.dins.scalaschool.file_to_map.telegram.model
 
 import cats.syntax.either._
 import io.circe._
+import io.circe.generic.semiauto.deriveDecoder
 
 object TelegramModel {
   final case class Response(data: Either[Failure, List[Success[Update]]])
@@ -9,22 +10,10 @@ object TelegramModel {
   final case class Success[+A](offset: Offset, data: A)
 
   sealed trait Update
-  case class Message(user: Option[User], chat: Chat, text: Option[String], document: Option[Document]) extends Update
-  case class MessageUpdate(user: Option[User], chat: Chat, text: String) extends Update
-  case class DocumentUpdate(user: Option[User], chat: Chat, text: Option[String], document: Document) extends Update
-  case class UnprocessableUpdate(chat: Chat) extends Update
-    // other update types
+  case class Message(from: Option[User], chat: Chat, text: Option[String], document: Option[Document]) extends Update
 
   object TelegramModelDecoders {
-    implicit val messageDecoder: Decoder[Message] =
-      (c: HCursor) => {
-        for {
-          user <- c.get[Option[User]]("from")
-          chat <- c.get[Chat]("chat")
-          text <- c.get[Option[String]]("text")
-          document <- c.get[Option[Document]]("document")
-        } yield Message(user, chat, text, document)
-      }
+    implicit val messageDecoder: Decoder[Message] = deriveDecoder
 
     implicit val successDecoder: Decoder[Success[Message]] = { (c: HCursor) =>
       for {
