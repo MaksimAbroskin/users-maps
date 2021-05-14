@@ -52,7 +52,7 @@ object Router {
             _       <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
             file    <- telegram.getFile(document.id)
             content <- telegram.downloadFile(file.path.get)
-            notes = FileParser.parse(content)
+            notes = FileParser.parse(content, Config.lineDelimiter, Config.inRowDelimiter)
             _ <- notes match {
               case Left(err) => telegram.sendMessage(err.message, chat)
               case Right(list) =>

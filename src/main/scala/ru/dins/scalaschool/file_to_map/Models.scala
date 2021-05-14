@@ -12,9 +12,7 @@ object Models {
       coordinates: Option[Coordinates] = None,
 //      phone: Option[String],     // nullable
 //      typeOfHelp: Option[String],// nullable
-  ) {
-    override def toString: String = s"Note = (n = $name, a = $address, coord = $coordinates)"
-  }
+  )
 
   trait ErrorMessage {
     val message: String
@@ -31,8 +29,8 @@ object Models {
          |  2) Check amount and content of fields in your document""".stripMargin
   }
 
-  case class Err() extends ErrorMessage {
-    override val message: String = ""
+  case class YaGeocoderError(addr: String) extends ErrorMessage {
+    override val message: String = s"Couldn't take coordinates for address: $addr"
   }
 
 }
