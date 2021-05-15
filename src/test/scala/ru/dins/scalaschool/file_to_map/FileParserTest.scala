@@ -82,12 +82,12 @@ class FileParserTest extends AnyFlatSpec with Matchers {
     FileParser.parse(s, lineDelimiter, inRowDelimiter) shouldBe Left(FileParsingError("""Line #9: Name9;Address9;ERROR"""))
   }
 
-  "parseWithErrInfo" should "return numbers of failed rows" in {
-    val s =
-      """Name1;Address1;Error'
-        |Name2;Address2;Error'
-        |Name3;Address3'""".stripMargin
-    FileParser.parseWithErrInfo(s, lineDelimiter, inRowDelimiter) shouldBe FileParsingError(s"Numbers of failed rows:\n1, 2")
-  }
+//  "parseWithErrInfo" should "return numbers of failed rows" in {
+//    val s =
+//      """Name1;Address1;Error'
+//        |Name2;Address2;Error'
+//        |Name3;Address3'""".stripMargin
+//    FileParser.parseWithErrInfo(s, lineDelimiter, inRowDelimiter) shouldBe FileParsingError(s"Numbers of failed rows:\n1, 2")
+//  }
 
 }

@@ -17,7 +17,7 @@ object YaGeocoder {
     new YaGeocoder[F] {
 
       val geocoderUri: Uri = uri"""https://geocode-maps.yandex.ru/1.x"""
-      val yandexApiKey     = "85e83a9b-10f8-4dd2-98db-47687cb1306"
+      val yandexApiKey     = "85e83a9b-10f8-4dd2-98db-47687cb13067"
 //      val yandexApiKey     = "85e83a9b-10f8-4dd2-98db-47687cb13067"
       //      https://geocode-maps.yandex.ru/1.x?geocode=<addr>&apikey=<yandexApiKey>&format=json&results=1
       private def getCoordinatesUri(addr: String): Uri = geocoderUri =? Map(
@@ -27,21 +27,31 @@ object YaGeocoder {
         "results" -> List("1"),
       )
 
-      private def getCoordinates(addr: String): F[Either[ErrorMessage, Coordinates]] =
+      private def getCoordinates(addr: String): F[Option[Coordinates]] =
         client.get(getCoordinatesUri(addr)) {
           case Successful(resp) =>
-            resp.decodeJson[YaPoint].map(point => Right(Coordinates.coordinatesFromString(point.pos)))
-          case _ => Sync[F].delay(Left(YaGeocoderError(addr)))
+            resp.decodeJson[YaPoint].map(point => Some(Coordinates.coordinatesFromString(point.pos)))
+          case _ => Sync[F].delay(None)
         }
 
-      override def enrichNotes(in: List[Note]): F[List[Note]] = {
+      private def geocodeReport(success: Int, total: Int) = s"Coordinates received.\nSuccessful: $success out of $total"
+
+      override def enrichNotes(in: List[Note]): F[Either[ErrorMessage, (List[Note], InfoMessage)]] = {
         import cats.implicits._
-        in.traverse { note =>
-          getCoordinates(note.address: String).map {
-            case Right(coordinates) => Option(note.copy(coordinates = Some(coordinates)))
-            case Left(_)          => None
-          }
-        }.map(x => x.filter(_.isDefined)).map(_.map(_.get))
+        val oneTraverse = in.traverse { note =>
+          getCoordinates(note.address: String).map(coord => note.copy(coordinates = coord))
+        }
+        for {
+          filtered <- oneTraverse.map(_.filter(_.coordinates.isDefined))
+          result = if (filtered.isEmpty) Left(YaGeocoderError())
+          else Right((filtered, InfoMessage(geocodeReport(filtered.length, in.length))))
+        } yield result
+//        oneTraverse
+//          .map(_.filter(_.coordinates.isDefined))
+//          .map { list =>
+//            val numSuccessNotes = list.count(_.coordinates.isDefined)
+//            (list, InfoMessage(geocodeReport(numSuccessNotes, in.length)))
+//          }
       }
     }
 }

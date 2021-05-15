@@ -57,10 +57,35 @@ object Router {
               case Left(err) => telegram.sendMessage(err.message, chat)
               case Right(list) =>
                 for {
-                  enrichedNotes <- geocoder.enrichNotes(list)
-                  jsonNotes = enrichedNotes.map(x => YaOneFeature(x))
-                  _ <- HtmlHandler[F].program(path(chat), fs2.Stream(YaData(features = jsonNotes).asJson.toString()))
-                  _ <- telegram.sendDocument(chat, new File(path(chat)))
+                  _             <- telegram.sendMessage(list._2.message, chat)
+                  enrichedNotes <- geocoder.enrichNotes(list._1)
+                  _ <- enrichedNotes match {
+                    case Left(err) => telegram.sendMessage(err.message, chat)
+                    case Right(list) =>
+                      val jsonNotes = list._1.map(x => YaOneFeature(x))
+                      for {
+                        _ <- HtmlHandler[F].program(
+                          path(chat),
+                          fs2.Stream(YaData(features = jsonNotes).asJson.toString()),
+                        )
+                        _ <- telegram.sendMessage(list._2.message, chat)
+                        _ <- telegram.sendDocument(chat, new File(path(chat)))
+                      } yield ()
+                  }
+//                  _ <- Sync[F].delay(println(s"enrichedNotes = $enrichedNotes"))
+//                  _ <-
+//                    if (enrichedNotes._1.isEmpty) telegram.sendMessage(enrichedNotes._2.message, chat)
+//                    else {
+//                      val jsonNotes = enrichedNotes._1.map(x => YaOneFeature(x))
+//                      for {
+//                        _ <- HtmlHandler[F].program(
+//                          path(chat),
+//                          fs2.Stream(YaData(features = jsonNotes).asJson.toString()),
+//                        )
+//                        _ <- telegram.sendMessage(enrichedNotes._2.message, chat)
+//                        _ <- telegram.sendDocument(chat, new File(path(chat)))
+//                      } yield ()
+//                    }
                 } yield ()
             }
           } yield ()

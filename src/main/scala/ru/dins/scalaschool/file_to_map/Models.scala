@@ -14,23 +14,25 @@ object Models {
 //      typeOfHelp: Option[String],// nullable
   )
 
+  case class InfoMessage(message: String)
+
   trait ErrorMessage {
     val message: String
   }
 
   case class FileParsingError(failedRow: String) extends ErrorMessage {
     override val message: String =
-      s"""File parsing error!
-         |Too much rows didn't parsed. Example of failed row:
+      s"""File didn't parsed!
+         |Example of failed row:
          |    $failedRow
          |
          |Recommendations:
          |  1) Compare your document delimiters with bot /settings
-         |  2) Check amount and content of fields in your document""".stripMargin
+         |  2) Check amount and content of columns in your document""".stripMargin
   }
 
-  case class YaGeocoderError(addr: String) extends ErrorMessage {
-    override val message: String = s"Couldn't take coordinates for address: $addr"
+  case class YaGeocoderError() extends ErrorMessage {
+    override val message: String = "Yandex geocoder API is not available. Please, try later"
   }
 
 }
