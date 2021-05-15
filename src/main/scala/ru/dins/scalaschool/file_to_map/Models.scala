@@ -35,4 +35,15 @@ object Models {
     override val message: String = "Yandex geocoder API is not available. Please, try later"
   }
 
+  case class DatabaseError(s: String) extends ErrorMessage {
+    override val message: String = s"Error while working with the database: $s"
+  }
+
+  case class UserSettings(
+      chatId: String,
+      lineDelimiter: String = "'",
+      inRowDelimiter: String = ":",
+      lastFileId: Option[String] = None
+  )
+
 }

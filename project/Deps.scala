@@ -6,6 +6,7 @@ object Deps {
     val http4s    = "0.21.21"
     val circe     = "0.12.3"
     val fs2       = "2.5.0"
+    val doobie    = "0.12.1"
     val logback   = "1.2.3"
     val scalatest = "3.2.7"
     val scalamock = "5.1.0"
@@ -34,6 +35,11 @@ object Deps {
     "co.fs2" %% "fs2-core",
     "co.fs2" %% "fs2-io",
   ).map(_ % Versions.fs2)
+
+  val doobie: Seq[ModuleID] = Seq(
+    "org.tpolecat" %% "doobie-core",
+    "org.tpolecat" %% "doobie-postgres",
+  ).map(_ % Versions.doobie)
 
   val logback = "ch.qos.logback" % "logback-classic" % Versions.logback
 

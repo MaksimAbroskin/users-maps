@@ -15,11 +15,13 @@ object FileParser {
 
     var failedRowExample = ""
 
+    //TODO ability to use \n as lineDelimiter
     val listParsedByLines = in
       .replaceAll(System.lineSeparator(), "")
       .split(lineDelimiter)
       .toList
 
+    //TODO ability to set order of columns with data: address, name, additional info for display on map
     val notes = listParsedByLines.zipWithIndex
       .map(line =>
         line._1

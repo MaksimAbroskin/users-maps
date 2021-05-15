@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory
 import ru.dins.scalaschool.file_to_map.maps.GeocoderApi
 import ru.dins.scalaschool.file_to_map.maps.yandex.HtmlHandler
 import ru.dins.scalaschool.file_to_map.maps.yandex.YaPointToMap.{YaData, YaOneFeature}
+import ru.dins.scalaschool.file_to_map.storage.Storage
 import ru.dins.scalaschool.file_to_map.telegram.model.Chat
 import ru.dins.scalaschool.file_to_map.telegram.model.TelegramModel.{Message, Update}
 import ru.dins.scalaschool.file_to_map.telegram.{TelegramApi, TextCommandHandler}
@@ -37,13 +38,17 @@ object Router {
   def apply[F[_]: Sync: ContextShift](
       telegram: TelegramApi[F],
       geocoder: GeocoderApi[F],
+      storage: Storage[F]
   ): Router[F] = {
     val messageOnlyRoute: TelegramUpdateRoute[F[Unit]] =
       TelegramUpdateRoute("user-message-only") {
         case Message(Some(user), chat, Some(text), None) =>
           for {
+            _ <- Sync[F].delay(println(s"Before creating"))
+            create <- storage.createUserSettings(chat.id, "f", "s")
+            _ <- Sync[F].delay(println(s"create = $create"))
             _ <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
-            response = TextCommandHandler.handle(text)
+            response <- TextCommandHandler.handle(chat.id, text)
             _ <- telegram.sendMessage(response, chat)
           } yield ()
 
@@ -72,20 +77,6 @@ object Router {
                         _ <- telegram.sendDocument(chat, new File(path(chat)))
                       } yield ()
                   }
-//                  _ <- Sync[F].delay(println(s"enrichedNotes = $enrichedNotes"))
-//                  _ <-
-//                    if (enrichedNotes._1.isEmpty) telegram.sendMessage(enrichedNotes._2.message, chat)
-//                    else {
-//                      val jsonNotes = enrichedNotes._1.map(x => YaOneFeature(x))
-//                      for {
-//                        _ <- HtmlHandler[F].program(
-//                          path(chat),
-//                          fs2.Stream(YaData(features = jsonNotes).asJson.toString()),
-//                        )
-//                        _ <- telegram.sendMessage(enrichedNotes._2.message, chat)
-//                        _ <- telegram.sendDocument(chat, new File(path(chat)))
-//                      } yield ()
-//                    }
                 } yield ()
             }
           } yield ()
