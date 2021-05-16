@@ -58,8 +58,8 @@ object Router {
             settings <- storage.getSettings(chat.id)
             //TODO use user data model
             notes = settings match {
-              case Left(_) => FileParser.parse(content, Config.lineDelimiter, Config.inRowDelimiter)
-              case Right(s) => FileParser.parse(content, s.lineDelimiter, s.inRowDelimiter)
+              case Left(_) => FileParser.parse(content, Config.lineDelimiter, Config.inRowDelimiter, 1, 2)
+              case Right(s) => FileParser.parse(content, s.lineDelimiter, s.inRowDelimiter, s.nameCol, s.addrCol, s.infoCol)
             }
             _ <- notes match {
               case Left(err) => telegram.sendMessage(err.message, chat)
