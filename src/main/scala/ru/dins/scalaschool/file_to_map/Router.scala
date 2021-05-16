@@ -6,6 +6,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import io.circe.syntax.EncoderOps
 import org.slf4j.LoggerFactory
+import ch.qos.logback.classic.{Level,Logger}
 import ru.dins.scalaschool.file_to_map.maps.GeocoderApi
 import ru.dins.scalaschool.file_to_map.maps.yandex.HtmlHandler
 import ru.dins.scalaschool.file_to_map.maps.yandex.YaPointToMap.{YaData, YaOneFeature}
@@ -25,7 +26,7 @@ final class Router[F[_]: Applicative] private (routesDefinitions: Router.Telegra
 }
 
 object Router {
-  private val routerLogger     = LoggerFactory.getLogger("telegram-service")
+  private val routerLogger = LoggerFactory.getLogger("telegram-service")
   private def path(chat: Chat) = s"src/main/resources/usersPoints/chat_${chat.id.toString}_Map.html"
 
   // represent a way of processing some type of update from user
@@ -44,20 +45,22 @@ object Router {
       TelegramUpdateRoute("user-message-only") {
         case Message(Some(user), chat, Some(text), None) =>
           for {
-            _ <- Sync[F].delay(println(s"Before creating"))
-            create <- storage.createUserSettings(chat.id, "f", "s")
-            _ <- Sync[F].delay(println(s"create = $create"))
             _ <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
-            response <- TextCommandHandler.handle(chat.id, text)
-            _ <- telegram.sendMessage(response, chat)
+            _ <- TextCommandHandler.handle(chat, text, storage, telegram)
           } yield ()
 
         case Message(Some(user), chat, None, Some(document)) =>
           for {
             _       <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
             file    <- telegram.getFile(document.id)
+            _ <- storage.setLastFileId(chat.id, file.path.get)
             content <- telegram.downloadFile(file.path.get)
-            notes = FileParser.parse(content, Config.lineDelimiter, Config.inRowDelimiter)
+            settings <- storage.getSettings(chat.id)
+            //TODO use user data model
+            notes = settings match {
+              case Left(_) => FileParser.parse(content, Config.lineDelimiter, Config.inRowDelimiter)
+              case Right(s) => FileParser.parse(content, s.lineDelimiter, s.inRowDelimiter)
+            }
             _ <- notes match {
               case Left(err) => telegram.sendMessage(err.message, chat)
               case Right(list) =>

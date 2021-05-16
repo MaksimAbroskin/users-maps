@@ -1,6 +1,7 @@
 package ru.dins.scalaschool.file_to_map
 
 object Config {
-  var lineDelimiter   = "'"
-  var inRowDelimiter = ":"
+  val newLine = "nl"
+  val lineDelimiter   = "'"
+  val inRowDelimiter = ":"
 }

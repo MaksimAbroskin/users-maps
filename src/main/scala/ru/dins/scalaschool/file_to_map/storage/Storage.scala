@@ -12,4 +12,6 @@ trait Storage[F[_]] {
   def setInRowDelimiter(chatId: Long, newDelimiter: String): F[Either[ErrorMessage, UserSettings]]
 
   def setLastFileId(chatId: Long, newFileId: String): F[Either[ErrorMessage, UserSettings]]
+
+  def setDataModel(chatId: Long, nameCol: Option[Int], addrCol: Option[Int], infoCol: Option[Int]): F[Either[ErrorMessage, UserSettings]]
 }

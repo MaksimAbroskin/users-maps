@@ -13,6 +13,9 @@ object Migrations {
         chat_id NUMERIC NOT NULL UNIQUE,
         line_delimiter TEXT NOT NULL,
         in_row_delimiter TEXT NOT NULL,
+        name_col NUMERIC NOT NULL,
+        addr_col NUMERIC NOT NULL,
+        info_col NUMERIC,
         last_file_id TEXT,
         PRIMARY KEY (chat_id)
       );

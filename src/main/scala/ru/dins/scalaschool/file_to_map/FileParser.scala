@@ -7,34 +7,69 @@ object FileParser {
     s"File parsed.\nSuccessful: $success out of $total\nFor more details call /deepParse\n\nFetching coordinates in process. Please, wait..."
   private val parseNoErrReport = s"File parsed successful!\n\nFetching coordinates in process. Please, wait..."
 
+  private def parseRow(
+      row: (String, Int),
+      inRowDelimiter: String,
+      nameCol: Int,
+      addrCol: Int,
+      infoCol: Option[Int] = None,
+  ): Option[Note] = {
+    val pseudoNote = row._1.split(inRowDelimiter).toList.map(_.trim)
+    val name       = pseudoNote.lift(nameCol - 1)
+    val addr       = pseudoNote.lift(addrCol - 1)
+    val info = infoCol match {
+      case Some(v) => pseudoNote.lift(v - 1)
+      case None    => None
+    }
+    println(s"name = $name")
+    println(s"addr = $addr")
+    println(s"info = $info")
+    (addr, name, info) match {
+      case (Some(a), Some(n), Some(i)) => Some(Note(id = row._2 + 1, n, a, None, Some(i)))
+      case (Some(a), Some(n), None)    => Some(Note(id = row._2 + 1, n, a))
+      case _                           => None
+    }
+  }
+
   def parse(
       in: String,
       lineDelimiter: String,
       inRowDelimiter: String,
+      nameCol: Int,
+      addrCol: Int,
+      infoCol: Option[Int] = None,
   ): Either[ErrorMessage, (List[Note], InfoMessage)] = {
 
     var failedRowExample = ""
 
-    //TODO ability to use \n as lineDelimiter
-    val listParsedByLines = in
-      .replaceAll(System.lineSeparator(), "")
-      .split(lineDelimiter)
-      .toList
+    val listParsedByLines =
+      if (lineDelimiter != Config.newLine)
+        in
+          .replaceAll(System.lineSeparator(), "")
+          .split(lineDelimiter)
+          .toList
+      else
+        in
+          .split(System.lineSeparator())
+          .toList
 
     //TODO ability to set order of columns with data: address, name, additional info for display on map
     val notes = listParsedByLines.zipWithIndex
-      .map(line =>
-        line._1
-          .split(inRowDelimiter)
-          .toList
-          .map(_.trim) match {
-          case name :: address :: Nil => Some(Note(id = line._2 + 1, name = name, address = address))
-          case _ =>
-            failedRowExample =
-              s"Line #${line._2 + 1}: ${if (line._1.length < 100) line._1 else s"${line._1.substring(0, 99)}..."}"
-            None
-        },
-      )
+      .map(row => parseRow(row, inRowDelimiter, nameCol, addrCol, infoCol))
+//      .map(line =>
+//        line._1
+//          .split(inRowDelimiter)
+//          .toList
+//          .map(_.trim) match {
+//          case name :: address :: Nil => Some(Note(id = line._2 + 1, name = name, address = address))
+//          case _ =>
+//            if (failedRowExample.isEmpty) {
+//              failedRowExample =
+//                s"Line #${line._2 + 1}: ${if (line._1.length < 100) line._1 else s"${line._1.substring(0, 99)}..."}"
+//            }
+//            None
+//        },
+//      )
 
     val result = notes.flatten
     if (result.isEmpty) Left(FileParsingError(failedRowExample))
