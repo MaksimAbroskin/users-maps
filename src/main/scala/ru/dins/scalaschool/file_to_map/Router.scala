@@ -6,12 +6,12 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import io.circe.syntax.EncoderOps
 import org.slf4j.LoggerFactory
-import ch.qos.logback.classic.{Level,Logger}
+import ru.dins.scalaschool.file_to_map.Models.{NotesWithInfo, UserSettings}
 import ru.dins.scalaschool.file_to_map.maps.GeocoderApi
 import ru.dins.scalaschool.file_to_map.maps.yandex.HtmlHandler
 import ru.dins.scalaschool.file_to_map.maps.yandex.YaPointToMap.{YaData, YaOneFeature}
 import ru.dins.scalaschool.file_to_map.storage.Storage
-import ru.dins.scalaschool.file_to_map.telegram.model.Chat
+import ru.dins.scalaschool.file_to_map.telegram.model.{Chat, Document}
 import ru.dins.scalaschool.file_to_map.telegram.model.TelegramModel.{Message, Update}
 import ru.dins.scalaschool.file_to_map.telegram.{TelegramApi, TextCommandHandler}
 
@@ -26,7 +26,7 @@ final class Router[F[_]: Applicative] private (routesDefinitions: Router.Telegra
 }
 
 object Router {
-  private val routerLogger = LoggerFactory.getLogger("telegram-service")
+  private val routerLogger     = LoggerFactory.getLogger("telegram-service")
   private def path(chat: Chat) = s"src/main/resources/usersPoints/chat_${chat.id.toString}_Map.html"
 
   // represent a way of processing some type of update from user
@@ -39,46 +39,41 @@ object Router {
   def apply[F[_]: Sync: ContextShift](
       telegram: TelegramApi[F],
       geocoder: GeocoderApi[F],
-      storage: Storage[F]
+      storage: Storage[F],
   ): Router[F] = {
     val messageOnlyRoute: TelegramUpdateRoute[F[Unit]] =
       TelegramUpdateRoute("user-message-only") {
         case Message(Some(user), chat, Some(text), None) =>
           for {
             _ <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
-            _ <- TextCommandHandler.handle(chat, text, storage, telegram)
+            _ <- TextCommandHandler.handle(chat, text, storage, telegram, geocoder)
           } yield ()
 
         case Message(Some(user), chat, None, Some(document)) =>
           for {
-            _       <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
-            file    <- telegram.getFile(document.id)
-            _ <- storage.setLastFileId(chat.id, file.path.get)
-            content <- telegram.downloadFile(file.path.get)
-            settings <- storage.getSettings(chat.id)
-            //TODO use user data model
-            notes = settings match {
-              case Left(_) => FileParser.parse(content, Config.lineDelimiter, Config.inRowDelimiter, 1, 2)
-              case Right(s) => FileParser.parse(content, s.lineDelimiter, s.inRowDelimiter, s.nameCol, s.addrCol, s.infoCol)
-            }
+            _           <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
+            contentFile <- readUserFile(telegram, storage, document, chat.id)
+
+            userSettings <- storage.getSettings(chat.id)
+            notes =
+              StringParser.parse(
+                contentFile,
+                userSettings match {
+                  case Left(err) =>
+                    telegram.sendMessage(err.message, chat)
+                    Config.defaultUserSettings.copy(chatId = chat.id)
+                  case Right(userSettings) => userSettings
+                },
+              )
             _ <- notes match {
               case Left(err) => telegram.sendMessage(err.message, chat)
-              case Right(list) =>
+              case Right(notesWithInfo) =>
                 for {
-                  _             <- telegram.sendMessage(list._2.message, chat)
-                  enrichedNotes <- geocoder.enrichNotes(list._1)
+                  _             <- telegram.sendMessage(notesWithInfo.info, chat)
+                  enrichedNotes <- geocoder.enrichNotes(notesWithInfo.notes)
                   _ <- enrichedNotes match {
-                    case Left(err) => telegram.sendMessage(err.message, chat)
-                    case Right(list) =>
-                      val jsonNotes = list._1.map(x => YaOneFeature(x))
-                      for {
-                        _ <- HtmlHandler[F].program(
-                          path(chat),
-                          fs2.Stream(YaData(features = jsonNotes).asJson.toString()),
-                        )
-                        _ <- telegram.sendMessage(list._2.message, chat)
-                        _ <- telegram.sendDocument(chat, new File(path(chat)))
-                      } yield ()
+                    case Left(err)            => telegram.sendMessage(err.message, chat)
+                    case Right(notesWithInfo) => createAndSendHtml(telegram, chat, notesWithInfo)
                   }
                 } yield ()
             }
@@ -92,5 +87,33 @@ object Router {
       }
 
     Router(messageOnlyRoute)
+  }
+
+  private def readUserFile[F[_]: Sync](
+      telegram: TelegramApi[F],
+      storage: Storage[F],
+      document: Document,
+      chatId: Long,
+  ): F[String] =
+    for {
+      file    <- telegram.getFile(document.id)
+      _       <- storage.setUserSettings(UserSettings(chatId = chatId, lastFileId = Some(file.path.get)))
+      content <- telegram.downloadFile(file.path.get)
+    } yield content
+
+  def createAndSendHtml[F[_]: Sync: ContextShift](
+      telegram: TelegramApi[F],
+      chat: Chat,
+      notesWithInfo: NotesWithInfo,
+  ): F[Unit] = {
+    val jsonNotes = notesWithInfo.notes.map(x => YaOneFeature(x))
+    for {
+      _ <- HtmlHandler[F].createFile(
+        path(chat),
+        fs2.Stream(YaData(features = jsonNotes).asJson.toString()),
+      )
+      _ <- telegram.sendMessage(notesWithInfo.info, chat)
+      _ <- telegram.sendDocument(chat, new File(path(chat)))
+    } yield ()
   }
 }

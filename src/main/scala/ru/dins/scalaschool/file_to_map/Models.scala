@@ -10,12 +10,13 @@ object Models {
       name: String,    // not null
       address: String, // not null
       coordinates: Option[Coordinates] = None,
-      info: Option[String] = None
-//      phone: Option[String],     // nullable
-//      typeOfHelp: Option[String],// nullable
+      info: Option[String] = None,
   )
 
-  case class InfoMessage(message: String)
+  case class NotesWithInfo(
+      notes: List[Note],
+      info: String,
+  )
 
   trait ErrorMessage {
     val message: String
@@ -33,7 +34,7 @@ object Models {
          |
          |Recommendations:
          |  1) Compare your document delimiters with bot /settings
-         |  2) Check amount and content of columns in your document""".stripMargin
+         |  2) Compare your file data model with bot /settings""".stripMargin
   }
 
   case class YaGeocoderError() extends ErrorMessage {
@@ -45,20 +46,23 @@ object Models {
   }
 
   case class UserSettings(
-      chatId: String,
-      lineDelimiter: String = "'",
-      inRowDelimiter: String = ":",
-      nameCol: Int = 1,
-      addrCol: Int = 2,
-      infoCol: Option[Int],
-      lastFileId: Option[String] = None
+      chatId: Long,
+      lineDelimiter: Option[String] = None,
+      inRowDelimiter: Option[String] = None,
+      nameCol: Option[Int] = None,
+      addrCol: Option[Int] = None,
+      infoCol: Option[Int] = None,
+      lastFileId: Option[String] = None,
   ) {
     val message: String =
       s"""Your current settings:
-         |  $lineDelimiter - line delimiter. Info how to change it /info_set_line_del
-         |  $inRowDelimiter - delimiter in row. Info how to change it /info_set_del_in_row
-         |  $nameCol - number of column with name
-         |  $addrCol - number of column with address
+         |Delimiters:
+         |  ${lineDelimiter.getOrElse("Not defined")} - line delimiter. Info how to change it /set_line_del_desc
+         |  ${inRowDelimiter.getOrElse("Not defined")} - delimiter in row. Info how to change it /set_del_in_row_desc
+         |
+         |Data model (Info how to change it /set_data_model_desc):
+         |  ${nameCol.getOrElse("Not defined")} - number of column with name
+         |  ${addrCol.getOrElse("Not defined")} - number of column with address
          |  ${infoCol.getOrElse("Not defined")} - number of column with info (Optional)""".stripMargin
   }
 

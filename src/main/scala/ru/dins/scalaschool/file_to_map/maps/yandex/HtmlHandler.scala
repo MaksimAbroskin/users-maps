@@ -1,9 +1,17 @@
 package ru.dins.scalaschool.file_to_map.maps.yandex
 
 import cats.effect.{Blocker, ContextShift, Sync}
+import cats.syntax.flatMap._
+import cats.syntax.functor._
 import fs2.{Stream, io, text}
+import ru.dins.scalaschool.file_to_map.Router.createAndSendHtml
+import ru.dins.scalaschool.file_to_map.maps.GeocoderApi
+import ru.dins.scalaschool.file_to_map.storage.Storage
+import ru.dins.scalaschool.file_to_map.telegram.TelegramApi
+import ru.dins.scalaschool.file_to_map.telegram.model.Chat
+import ru.dins.scalaschool.file_to_map.{Config, StringParser}
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.Paths
 
 final case class HtmlHandler[F[_]: Sync: ContextShift]() {
   val prefix: Stream[F, String] = Stream("""<!DOCTYPE html>
@@ -74,10 +82,43 @@ final case class HtmlHandler[F[_]: Sync: ContextShift]() {
       .through(text.utf8Encode)
       .through(io.file.writeAll(Paths.get(fileName), blocker))
 
-  def program(fileName: String, upstream: Stream[F, String]): F[Unit] = (for {
+  def createFile(fileName: String, upstream: Stream[F, String]): F[Unit] = (for {
     _ <- Stream
       .resource(Blocker[F])
       .flatMap(blocker => toFile(fileName, prefix ++ upstream ++ suffix, blocker))
   } yield ()).compile.drain
+
+  def stringToHtml(
+      telegram: TelegramApi[F],
+      geocoder: GeocoderApi[F],
+      storage: Storage[F],
+      chat: Chat,
+      content: String,
+  ): F[Unit] =
+    for {
+      userSettings <- storage.getSettings(chat.id)
+      notes =
+        StringParser.parse(
+          content,
+          userSettings match {
+            case Left(err) =>
+              telegram.sendMessage(err.message, chat)
+              Config.defaultUserSettings.copy(chatId = chat.id)
+            case Right(userSettings) => userSettings
+          },
+        )
+      _ <- notes match {
+        case Left(err) => telegram.sendMessage(err.message, chat)
+        case Right(notesWithInfo) =>
+          for {
+            _             <- telegram.sendMessage(notesWithInfo.info, chat)
+            enrichedNotes <- geocoder.enrichNotes(notesWithInfo.notes)
+            _ <- enrichedNotes match {
+              case Left(err)            => telegram.sendMessage(err.message, chat)
+              case Right(notesWithInfo) => createAndSendHtml(telegram, chat, notesWithInfo)
+            }
+          } yield ()
+      }
+    } yield ()
 
 }
