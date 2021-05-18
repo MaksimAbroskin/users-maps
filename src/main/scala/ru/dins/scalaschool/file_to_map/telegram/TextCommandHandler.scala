@@ -35,16 +35,10 @@ object TextCommandHandler {
     message match {
       case "/start" =>
         for {
-          create <- storage.createUserSettings(Config.defaultUserSettings.copy(chatId = chat.id))
-          _ <- create match {
-            case Left(err) => telegram.sendMessage(err.message, chat)
-            case Right(_)  => telegram.sendMessage(startMessage, chat)
-          }
+          _ <- telegram.sendMessage(startMessage, chat)
         } yield ()
 
       case s"//${s: String}" => HtmlHandler().stringToHtml(telegram, geocoder, storage, chat, s)
-
-      case "/deepParse" => telegram.sendMessage("Joke)\nNot implemented yet", chat)
 
       case s"/set_line_del ${d: String}" =>
         if (regexLine.matches(d))
@@ -55,14 +49,6 @@ object TextCommandHandler {
             UserSettings(chat.id, lineDelimiter = Some(d)),
           )
         else telegram.sendMessage(incorrectDelimiter, chat)
-//          for {
-//            settings <- storage.setUserSettings(UserSettings(chat.id, lineDelimiter = Some(d)))
-//            _ <- settings match {
-//              case Left(err) => telegram.sendMessage(err.message, chat)
-//              case Right(s)  => telegram.sendMessage(s"${s.lineDelimiter} - is your new line delimiter", chat)
-//            }
-//          } yield ()
-//        else telegram.sendMessage(incorrectDelimiter, chat)
 
       case s"/set_del_in_row ${d: String}" =>
         if (regexInLine.matches(d))
@@ -72,13 +58,6 @@ object TextCommandHandler {
             chat,
             UserSettings(chat.id, inRowDelimiter = Some(d)),
           )
-//          for {
-//            settings <- storage.setUserSettings(UserSettings(chat.id, inRowDelimiter = Some(d)))
-//            _ <- settings match {
-//              case Left(err) => telegram.sendMessage(err.message, chat)
-//              case Right(s)  => telegram.sendMessage(s"${s.inRowDelimiter} - is your new delimiter in rows", chat)
-//            }
-//          } yield ()
         else telegram.sendMessage(incorrectDelimiter, chat)
 
       case s"/set_data_model ${model: String}" =>
@@ -92,15 +71,6 @@ object TextCommandHandler {
                   chat,
                   UserSettings(chat.id, nameCol = name, addrCol = address, infoCol = info),
                 )
-//                for {
-//                  settings <- storage.setUserSettings(
-//                    UserSettings(chat.id, nameCol = name, addrCol = address, infoCol = info),
-//                  )
-//                  _ <- settings match {
-//                    case Left(err) => telegram.sendMessage(err.message, chat)
-//                    case Right(_)  => telegram.sendMessage(s"Data model updated successfully", chat)
-//                  }
-//                } yield ()
               case name :: address :: Nil =>
                 setSettingsAndSendMessage(
                   storage,
@@ -108,19 +78,12 @@ object TextCommandHandler {
                   chat,
                   UserSettings(chat.id, nameCol = name, addrCol = address),
                 )
-//                for {
-//                  settings <- storage.setUserSettings(UserSettings(chat.id, nameCol = name, addrCol = address, infoCol = None))
-//                  _ <- settings match {
-//                    case Left(err) => telegram.sendMessage(err.message, chat)
-//                    case Right(_)  => telegram.sendMessage(s"Data model updated successfully", chat)
-//                  }
-//                } yield ()
               case _ => telegram.sendMessage("Error while parsing data model", chat)
             }
 
           case None =>
             telegram.sendMessage(
-              "Incorrect data model! More Information /info_set_data_model",
+              "Incorrect data model! More Information /set_data_model_desc",
               chat,
             )
         }
@@ -129,7 +92,14 @@ object TextCommandHandler {
         for {
           settings <- storage.getSettings(chat.id)
           _ <- settings match {
-            case Left(err)       => telegram.sendMessage(err.message, chat)
+            case Left(_) =>
+              for {
+                create <- storage.createUserSettings(Config.defaultUserSettings.copy(chatId = chat.id))
+                _ <- create match {
+                  case Left(err) => telegram.sendMessage(err.message, chat)
+                  case Right(s)  => telegram.sendMessage(s.message, chat)
+                }
+              } yield ()
             case Right(settings) => telegram.sendMessage(settings.message, chat)
           }
         } yield ()
@@ -141,10 +111,10 @@ object TextCommandHandler {
       case "/set_data_model_desc" => telegram.sendMessage(setDataModelDescription, chat)
 
       case s"/set_line_del" =>
-        telegram.sendMessage("This command must have the parameter. More information /info_set_line_del", chat)
+        telegram.sendMessage("This command must have the parameter. More information /set_line_del_desc", chat)
 
       case s"/set_del_in_row" =>
-        telegram.sendMessage("This command must have the parameter. More information /info_set_del_in_row", chat)
+        telegram.sendMessage("This command must have the parameter. More information /set_del_in_row_desc", chat)
 
       case "/help" => telegram.sendMessage(helpResponse, chat)
       case _       => telegram.sendMessage(s"Unknown command '$message'", chat)
@@ -159,10 +129,23 @@ object TextCommandHandler {
     for {
       settings <- storage.setUserSettings(us)
       _ <- settings match {
-        case Left(err) => telegram.sendMessage(err.message, chat)
-        case Right(_)  => telegram.sendMessage("Settings updated successfully! See current /setting", chat)
+        case Left(_) => for {
+          create <- storage.createUserSettings(us)
+          _ <- create match {
+            case Left(err) => telegram.sendMessage(err.message, chat)
+            case Right(_) => telegram.sendMessage("Settings updated successfully! See current /settings", chat)
+          }
+        } yield ()
+          case Right(_)  => telegram.sendMessage("Settings updated successfully! See current /settings", chat)
       }
     } yield ()
+//    (for {
+//      settings <- storage.setUserSettings(us)
+//      result   <- if (settings.isLeft) storage.createUserSettings(us) else Sync[F].pure(Right(()))
+//    } yield result).flatMap {
+//      case Left(err) => telegram.sendMessage(err.message, chat)
+//      case Right(_)  => telegram.sendMessage("Settings updated successfully! See current /settings", chat)
+//    }
 
   private def parseDataModel(model: String): Option[List[Option[Int]]] = {
     val sList = model.split("\\s+").toList
@@ -226,8 +209,8 @@ object TextCommandHandler {
       | (How to change these settings see /set_data_model_desc)
       |
       |3) The following delimiters have to use between file (or text message) fields:
-      |   - between lines (by default, \n (new line))
-      |   - between fields in one line (by default, |)
+      |   - between lines (by default, '\n' (new line))
+      |   - between fields in one line (by default, ';')
       | (How to change these settings see /set_line_del and /set_del_in_row_desc)
       |
       |Stages of interactions with me:

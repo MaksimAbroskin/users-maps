@@ -52,7 +52,7 @@ object Router {
         case Message(Some(user), chat, None, Some(document)) =>
           for {
             _           <- Sync[F].delay(routerLogger.info(s"received info from user: $user"))
-            contentFile <- readUserFile(telegram, storage, document, chat.id)
+            contentFile <- readUserFile(telegram, document)
 
             userSettings <- storage.getSettings(chat.id)
             notes =
@@ -91,13 +91,10 @@ object Router {
 
   private def readUserFile[F[_]: Sync](
       telegram: TelegramApi[F],
-      storage: Storage[F],
       document: Document,
-      chatId: Long,
   ): F[String] =
     for {
       file    <- telegram.getFile(document.id)
-      _       <- storage.setUserSettings(UserSettings(chatId = chatId, lastFileId = Some(file.path.get)))
       content <- telegram.downloadFile(file.path.get)
     } yield content
 

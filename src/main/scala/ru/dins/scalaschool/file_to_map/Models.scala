@@ -9,8 +9,8 @@ object Models {
       id: Int,         // not null
       name: String,    // not null
       address: String, // not null
-      coordinates: Option[Coordinates] = None,
       info: Option[String] = None,
+      coordinates: Option[Coordinates] = None,
   )
 
   case class NotesWithInfo(
@@ -20,10 +20,6 @@ object Models {
 
   trait ErrorMessage {
     val message: String
-  }
-
-  case class SimpleError(s: String) extends ErrorMessage {
-    override val message: String = s
   }
 
   case class FileParsingError(failedRow: String) extends ErrorMessage {
@@ -38,11 +34,15 @@ object Models {
   }
 
   case class YaGeocoderError() extends ErrorMessage {
-    override val message: String = "Yandex geocoder API is not available. Please, try later"
+    override val message: String = "Geocoder couldn't find your addresses! Please, check if they are correct"
   }
 
-  case class DatabaseError(s: String) extends ErrorMessage {
-    override val message: String = s"Error while working with the database: $s"
+  case class ChatAlreadyExistsError(id: Long) extends ErrorMessage {
+    override val message: String = s"Chat with id #$id already exists"
+  }
+
+  case class ChatNotFoundInDbError(id: Long) extends ErrorMessage {
+    override val message: String = s"Chat with id #$id didn't found in database"
   }
 
   case class UserSettings(
@@ -52,7 +52,6 @@ object Models {
       nameCol: Option[Int] = None,
       addrCol: Option[Int] = None,
       infoCol: Option[Int] = None,
-      lastFileId: Option[String] = None,
   ) {
     val message: String =
       s"""Your current settings:

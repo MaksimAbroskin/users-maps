@@ -6,7 +6,12 @@ import doobie.implicits._
 import doobie.postgres.sqlstate
 import doobie.util.fragments.setOpt
 import doobie.util.transactor.Transactor.Aux
-import ru.dins.scalaschool.file_to_map.Models.{DatabaseError, ErrorMessage, SimpleError, UserSettings}
+import ru.dins.scalaschool.file_to_map.Models.{
+  ChatAlreadyExistsError,
+  ChatNotFoundInDbError,
+  ErrorMessage,
+  UserSettings,
+}
 
 case class PostgresStorage[F[_]: Sync](xa: Aux[F, Unit]) extends Storage[F]() {
 
@@ -23,7 +28,7 @@ case class PostgresStorage[F[_]: Sync](xa: Aux[F, Unit]) extends Storage[F]() {
       )
       .transact(xa)
       .attemptSomeSqlState { case sqlstate.class23.UNIQUE_VIOLATION =>
-        SimpleError("Bot is ready")
+        ChatAlreadyExistsError(us.chatId)
       }
 
   override def getSettings(chatId: Long): F[Either[ErrorMessage, UserSettings]] =
@@ -33,7 +38,8 @@ case class PostgresStorage[F[_]: Sync](xa: Aux[F, Unit]) extends Storage[F]() {
       .transact(xa)
       .map {
         case Some(x) => Right(x)
-        case None    => Left(DatabaseError(s"couldn't take data for chat with id $chatId"))
+        case None =>
+          Left(ChatNotFoundInDbError(chatId))
       }
 
   override def setUserSettings(us: UserSettings): F[Either[ErrorMessage, UserSettings]] = {
@@ -44,7 +50,6 @@ case class PostgresStorage[F[_]: Sync](xa: Aux[F, Unit]) extends Storage[F]() {
     val infoOpt =
       if (nameOpt.isDefined & addrOpt.isDefined & us.infoCol.isEmpty) Some(fr"info_col = null")
       else us.infoCol.map(x => fr"info_col = $x")
-    val lastFileIdOpt = us.lastFileId.map(x => fr"last_file_id = $x")
 
     val request = fr"UPDATE users_settings" ++ setOpt(
       lineDelimiterOpt,
@@ -52,7 +57,6 @@ case class PostgresStorage[F[_]: Sync](xa: Aux[F, Unit]) extends Storage[F]() {
       nameOpt,
       addrOpt,
       infoOpt,
-      lastFileIdOpt,
     ) ++ fr"WHERE chat_id=${us.chatId} RETURNING *"
     request
       .query[UserSettings]
@@ -60,7 +64,7 @@ case class PostgresStorage[F[_]: Sync](xa: Aux[F, Unit]) extends Storage[F]() {
       .transact(xa)
       .map {
         case Some(x) => Right(x)
-        case None    => Left(DatabaseError("Couldn't update data structure."))
+        case None    => Left(ChatNotFoundInDbError(us.chatId))
       }
   }
 

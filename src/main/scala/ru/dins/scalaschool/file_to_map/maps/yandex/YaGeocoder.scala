@@ -2,6 +2,7 @@ package ru.dins.scalaschool.file_to_map.maps.yandex
 
 import cats.effect.Sync
 import cats.syntax.functor._
+import cats.syntax.applicativeError._
 import org.http4s.Status.Successful
 import org.http4s._
 import org.http4s.circe.toMessageSynax
@@ -29,7 +30,7 @@ object YaGeocoder {
       private def getCoordinates(addr: String): F[Option[Coordinates]] =
         client.get(getCoordinatesUri(addr)) {
           case Successful(resp) =>
-            resp.decodeJson[YaPoint].map(point => Option(Coordinates.coordinatesFromString(point.pos)))
+            resp.decodeJson[YaPoint].map(point => Option(Coordinates.coordinatesFromString(point.pos))).handleErrorWith(_ => Sync[F].delay(None))
           case _ => Sync[F].delay(None)
         }
 

@@ -45,8 +45,11 @@ object YaPointToMap {
       geometry = YaGeometry(coordinates = note.coordinates.get.asList),
       properties = YaProperties(
         balloonContentHeader = note.name,
-        balloonContentBody = note.address,
-        clusterCaption = s"Note #${note.id}",
+        balloonContentBody = note.info match {
+          case Some(info) => s"<p>Адрес: ${note.address}</p><p>Информация: $info</p>"
+          case None => s"Адрес: ${note.address}"
+        },
+        clusterCaption = s"#${note.id}. ${note.name} ",
         hintContent = note.name,
       ),
     )

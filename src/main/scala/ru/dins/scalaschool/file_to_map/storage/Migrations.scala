@@ -16,7 +16,6 @@ object Migrations {
         name_col NUMERIC NOT NULL,
         addr_col NUMERIC NOT NULL,
         info_col NUMERIC,
-        last_file_id TEXT,
         PRIMARY KEY (chat_id)
       );
        """.update
