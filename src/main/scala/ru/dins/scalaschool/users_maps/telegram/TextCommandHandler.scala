@@ -21,8 +21,8 @@ import scala.util.matching.Regex
 
 object TextCommandHandler {
 
-  private val regexLine: Regex   = ("\\W{1}|" + newLine).r
-  private val regexInLine: Regex = "\\W{1}".r
+  private val regexLine: Regex   = ("""[^\w(\\]{1}|""" + newLine).r
+  private val regexInLine: Regex = """[^\w(\\]{1}""".r
   private val incorrectDelimiter = "Incorrect delimiter! It should be ONE symbol, no digit or letter"
 
   def handle[F[_]: Sync: ContextShift](

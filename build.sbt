@@ -6,4 +6,4 @@ version := "0.1"
 
 scalaVersion := "2.13.5"
 
-libraryDependencies ++= (cats ++ http4s ++ circe ++ fs2 ++ doobie ++ tests ++ testContainers ++ mock) :+ logback
+libraryDependencies ++= (cats ++ http4s ++ circe ++ fs2 ++ doobie ++ apache ++ tests ++ testContainers ++ mock) :+ logback

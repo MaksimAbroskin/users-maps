@@ -2,15 +2,16 @@ import sbt._
 
 object Deps {
   object Versions {
-    val cats      = "2.3.0"
-    val http4s    = "0.21.21"
-    val circe     = "0.12.3"
-    val fs2       = "2.5.0"
-    val doobie    = "0.12.1"
-    val logback   = "1.2.3"
-    val scalatest = "3.2.7"
+    val cats           = "2.3.0"
+    val http4s         = "0.21.21"
+    val circe          = "0.12.3"
+    val fs2            = "2.5.0"
+    val doobie         = "0.12.1"
+    val apache         = "1.9"
+    val logback        = "1.2.3"
+    val scalatest      = "3.2.7"
     val testContainers = "0.39.4"
-    val scalamock = "5.1.0"
+    val scalamock      = "5.1.0"
   }
 
   val cats: Seq[ModuleID] = Seq(
@@ -42,6 +43,8 @@ object Deps {
     "org.tpolecat" %% "doobie-postgres",
   ).map(_ % Versions.doobie)
 
+  val apache: Seq[ModuleID] = Seq("org.apache.commons" % "commons-text").map(_ % Versions.apache)
+
   val logback = "ch.qos.logback" % "logback-classic" % Versions.logback
 
   val tests: Seq[ModuleID] = Seq(
@@ -51,7 +54,7 @@ object Deps {
 
   val testContainers: Seq[ModuleID] = Seq(
     "com.dimafeng" %% "testcontainers-scala-scalatest",
-    "com.dimafeng" %% "testcontainers-scala-postgresql"
+    "com.dimafeng" %% "testcontainers-scala-postgresql",
   ).map(_ % Versions.testContainers)
 
   val mock: Seq[ModuleID] = Seq("org.scalamock" %% "scalamock")

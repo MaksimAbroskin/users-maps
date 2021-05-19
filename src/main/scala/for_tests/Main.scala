@@ -3,20 +3,24 @@ package for_tests
 import cats.effect.{Blocker, ExitCode, IO, IOApp}
 import io.circe.syntax.EncoderOps
 import fs2._
+import org.apache.commons.text.StringEscapeUtils
 import ru.dins.scalaschool.users_maps.Models.Note
 import ru.dins.scalaschool.users_maps.maps.yandex.YaPointToMap.{YaData, YaOneFeature}
 
 import java.nio.file.{Files, Paths}
+import scala.reflect.runtime.universe.{Constant, Literal}
+import org.apache.commons.text.StringEscapeUtils._
 
-object Main extends App {
-  def combine(outcomeA: Either[String, Int],
-              outcomeB: Either[String, Int]): Either[String, Int] =
-    for {
-      passA <- outcomeA
-      passB <- outcomeB
-    } yield {(passA + passB) / 2}
+import scala.StringContext.{processEscapes, treatEscapes}
 
-  println(combine(Right(3), Left("error2")))
+  object Main extends App {
+    val s = """"\This string\\ \contains some\ backslashes\""""
+    println(s)
+    val rx = """(\\)\\(?!\\)""".r.unanchored
+    val ismatch = s match {
+      case rx(_*) => true
+      case _ => false
+    }
+    println(ismatch)
+  }
 
-
-}
