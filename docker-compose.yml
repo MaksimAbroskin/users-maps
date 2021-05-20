@@ -1,0 +1,14 @@
+version: '3.3'
+services:
+  users_maps:
+    image: eu.gcr.io/dins-scala-school/users-maps
+    depends_on:
+      - postgres
+  postgres:
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - '5432:5432'

@@ -1,6 +1,6 @@
 package ru.dins.scalaschool.users_maps.telegram.model
 
-import io.circe.{Decoder, HCursor, Json}
+import io.circe.{Decoder, HCursor}
 
 case class File (id: String, path:Option[String])
 

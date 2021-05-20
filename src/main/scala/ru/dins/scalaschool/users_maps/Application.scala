@@ -7,11 +7,14 @@ import doobie.util.transactor.Transactor.Aux
 import org.http4s.client.blaze.BlazeClientBuilder
 import telegram.TelegramApi
 import maps.yandex.YaGeocoder
+import org.slf4j.LoggerFactory
 import ru.dins.scalaschool.users_maps.storage.{Database, Migrations, PostgresStorage}
 
 import scala.concurrent.ExecutionContext.global
 
 object Application extends IOApp {
+  private val logger = LoggerFactory.getLogger(this.getClass)
+
   def run(args: List[String]): IO[ExitCode] = {
     Migrations.migrate(Database.xa).unsafeRunSync()
     app[IO](Database.xa)
@@ -21,6 +24,7 @@ object Application extends IOApp {
 
   def app[F[_]: ConcurrentEffect: ContextShift](xa: Aux[F, Unit]): F[ExitCode] =
     for {
+      _ <- Sync[F].delay(logger.info(s"Starting service"))
       token <- Sync[F].fromOption(myToken, new IllegalArgumentException("can't find bot token"))
       _ <- BlazeClientBuilder[F](global).resource
         .use { client =>

@@ -125,22 +125,29 @@ object TextCommandHandler {
       telegram: TelegramApi[F],
       chat: Chat,
       us: UserSettings,
-  ) = {
-    for {
-      settings <- storage.setUserSettings(us)
-      _ <- settings match {
-        case Left(_) =>
-          for {
-            create <- storage.createUserSettings(us)
-            _ <- create match {
-              case Left(err) => telegram.sendMessage(err.message, chat)
-              case Right(_)  => telegram.sendMessage("Settings updated successfully! See current /settings", chat)
-            }
-          } yield ()
-        case Right(_) => telegram.sendMessage("Settings updated successfully! See current /settings", chat)
-      }
-    } yield ()
-  }
+  ) =
+    storage.getSettings(chat.id).flatMap {
+      case Right(_) =>
+        for {
+          _ <- storage.setUserSettings(us)
+          _ <- telegram.sendMessage("Settings updated successfully! See current /settings", chat)
+        } yield ()
+      case Left(_) =>
+        for {
+          create <- storage.createUserSettings(defaultUserSettings)
+          _ <- create match {
+            case Right(_) =>
+              storage
+                .setUserSettings(us)
+                .flatMap {
+                  case Right(_)  => telegram.sendMessage("Settings updated successfully! See current /settings", chat)
+                  case Left(err) => telegram.sendMessage(err.message, chat)
+                }
+            case Left(err) => telegram.sendMessage(err.message, chat) // should never happen
+          }        } yield ()
+
+    }
+
   //    (for {
 //      settings <- storage.setUserSettings(us)
 //      result   <- if (settings.isLeft) storage.createUserSettings(us) else Sync[F].pure(Right(()))

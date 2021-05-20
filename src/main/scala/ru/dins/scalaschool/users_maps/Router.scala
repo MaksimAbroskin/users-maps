@@ -6,7 +6,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import io.circe.syntax.EncoderOps
 import org.slf4j.LoggerFactory
-import ru.dins.scalaschool.users_maps.Models.{NotesWithInfo, UserSettings}
+import ru.dins.scalaschool.users_maps.Models.NotesWithInfo
 import ru.dins.scalaschool.users_maps.maps.GeocoderApi
 import ru.dins.scalaschool.users_maps.maps.yandex.HtmlHandler
 import ru.dins.scalaschool.users_maps.maps.yandex.YaPointToMap.{YaData, YaOneFeature}
@@ -105,7 +105,7 @@ object Router {
   ): F[Unit] = {
     val jsonNotes = notesWithInfo.notes.map(x => YaOneFeature(x))
     for {
-      _ <- HtmlHandler[F].createFile(
+      _ <- HtmlHandler[F]().createFile(
         path(chat),
         fs2.Stream(YaData(features = jsonNotes).asJson.toString()),
       )
