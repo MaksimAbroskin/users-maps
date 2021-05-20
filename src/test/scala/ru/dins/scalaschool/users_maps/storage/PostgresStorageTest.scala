@@ -78,7 +78,7 @@ class PostgresStorageTest extends AnyFlatSpec with Matchers with TestContainerFo
         .transact(xa)
 
     for {
-      _ <- createNoteForChat
+      _        <- createNoteForChat
       settings <- storage.getSettings(defaultUserSettings.chatId)
     } yield settings shouldBe Right(defaultUserSettings)
   }
@@ -106,7 +106,7 @@ class PostgresStorageTest extends AnyFlatSpec with Matchers with TestContainerFo
     val newUserSettings = UserSettings(chatId = us.chatId, lineDelimiter = Some('-'), inRowDelimiter = Some('\''))
 
     for {
-      _ <- createNoteForChat
+      _        <- createNoteForChat
       settings <- storage.setUserSettings(newUserSettings)
     } yield settings shouldBe Right(us.copy(lineDelimiter = Some('-'), inRowDelimiter = Some('\'')))
   }
@@ -119,7 +119,7 @@ class PostgresStorageTest extends AnyFlatSpec with Matchers with TestContainerFo
     val newUserSettings = UserSettings(chatId = us.chatId, nameCol = Some(4), addrCol = Some(3), infoCol = Some(1))
 
     for {
-      _ <- createNoteForChat
+      _        <- createNoteForChat
       settings <- storage.setUserSettings(newUserSettings)
     } yield settings shouldBe Right(us.copy(nameCol = Some(4), addrCol = Some(3), infoCol = Some(1)))
   }
