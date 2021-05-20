@@ -1,5 +1,4 @@
 import Deps._
-import sbt.Keys.scalaVersion
 
 lazy val `users-maps` = (project in file("."))
   .settings(

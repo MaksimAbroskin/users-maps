@@ -22,7 +22,7 @@ class StringParserTest extends AnyFlatSpec with Matchers {
   it should "return notes list if string have some formatting troubles" in {
     val s =
       """ Name1;Address1 ; Info1'Name2 ;Address2'Name3; Address3;  Info3 '"""
-    StringParser.parse(s, defaultUserSettings.copy(lineDelimiter = Some("'"), infoCol = Some(3))) shouldBe Right(
+    StringParser.parse(s, defaultUserSettings.copy(lineDelimiter = Some('\''), infoCol = Some(3))) shouldBe Right(
       NotesWithInfo(List(note1, note2, note3), StringParser.parseNoErrReport(3, 3)),
     )
   }

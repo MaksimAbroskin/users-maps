@@ -37,7 +37,7 @@ object YaGeocoder {
           case _ => Sync[F].delay(None)
         }
 
-      private def geocodeReport(success: Int, total: Int) = s"Coordinates received.\nSuccessful: $success out of $total"
+      private def geocodeReport(success: Int, total: Int) = s"Координаты получены.\nУспешно: $success из $total"
 
       override def enrichNotes(in: List[Note]): F[Either[ErrorMessage, NotesWithInfo]] = {
         import cats.implicits._

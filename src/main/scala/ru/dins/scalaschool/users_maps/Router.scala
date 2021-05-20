@@ -45,13 +45,13 @@ object Router {
       TelegramUpdateRoute("user-message-only") {
         case Message(chat, Some(text), None) =>
           for {
-            _ <- Sync[F].delay(routerLogger.info(s"received info from chat: $chat"))
+            _ <- Sync[F].delay(routerLogger.info(s"received text message from chat: $chat: $text"))
             _ <- TextCommandHandler.handle(chat, text, storage, telegram, geocoder)
           } yield ()
 
         case Message(chat, None, Some(document)) =>
           for {
-            _           <- Sync[F].delay(routerLogger.info(s"received info from chat: $chat"))
+            _ <- Sync[F].delay(routerLogger.info(s"received document from chat: $chat"))
             contentFile <- readUserFile(telegram, document)
 
             userSettings <- storage.getSettings(chat.id)
@@ -81,8 +81,8 @@ object Router {
 
         case Message(chat, None, None) =>
           for {
-            _ <- Sync[F].delay(routerLogger.info(s"received info from chat: $chat"))
-            _ <- telegram.sendMessage("Unprocessable message", chat)
+            _ <- Sync[F].delay(routerLogger.info(s"received unprocessed text message from chat: $chat"))
+            _ <- telegram.sendMessage("Необрабатываемое сообщение", chat)
           } yield ()
       }
 

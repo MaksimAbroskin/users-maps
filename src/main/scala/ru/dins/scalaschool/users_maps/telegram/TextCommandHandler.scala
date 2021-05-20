@@ -4,7 +4,7 @@ import cats.effect.{ContextShift, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import ru.dins.scalaschool.users_maps.Models.UserSettings
-import ru.dins.scalaschool.users_maps._
+import ru.dins.scalaschool.users_maps.{defaultUserSettings, leftPart, newLine, rightPart}
 import ru.dins.scalaschool.users_maps.maps.GeocoderApi
 import ru.dins.scalaschool.users_maps.maps.yandex.HtmlHandler
 import ru.dins.scalaschool.users_maps.storage.Storage
@@ -12,18 +12,11 @@ import ru.dins.scalaschool.users_maps.telegram.model.Chat
 
 import scala.util.Try
 import scala.util.matching.Regex
-//start - Initialize bot. If this is your first time
-//settings - Settings of your bot
-//set_line_del - Set new line delimiter
-//set_del_in_row - Set new delimiter in row
-//set_data_model - Set data model of your file
-//help - Available commands
 
 object TextCommandHandler {
 
-  private val regexLine: Regex   = ("""[^\w(\\]{1}|""" + newLine).r
-  private val regexInLine: Regex = """[^\w(\\]{1}""".r
-  private val incorrectDelimiter = "Incorrect delimiter! It should be ONE symbol, no digit or letter"
+  private def incorrectDelimiter(link: String) =
+    s"""Указан некорректный разделитель! Подробнее $link""".stripMargin
 
   def handle[F[_]: Sync: ContextShift](
       chat: Chat,
@@ -41,24 +34,28 @@ object TextCommandHandler {
       case s"//${s: String}" => HtmlHandler().stringToHtml(telegram, geocoder, storage, chat, s)
 
       case s"/set_line_del ${d: String}" =>
-        if (regexLine.matches(d))
+        getSeparator(d) match {
+          case Some(ch) =>
           setSettingsAndSendMessage(
             storage,
             telegram,
             chat,
-            UserSettings(chat.id, lineDelimiter = Some(d)),
+            UserSettings(chat.id, lineDelimiter = Some(ch)),
           )
-        else telegram.sendMessage(incorrectDelimiter, chat)
+          case None => telegram.sendMessage(incorrectDelimiter("/set_line_del_desc"), chat)
+        }
 
       case s"/set_del_in_row ${d: String}" =>
-        if (regexInLine.matches(d))
-          setSettingsAndSendMessage(
-            storage,
-            telegram,
-            chat,
-            UserSettings(chat.id, inRowDelimiter = Some(d)),
-          )
-        else telegram.sendMessage(incorrectDelimiter, chat)
+        getSeparator(d) match {
+          case Some(ch) =>
+            setSettingsAndSendMessage(
+              storage,
+              telegram,
+              chat,
+              UserSettings(chat.id, inRowDelimiter = Some(ch)),
+            )
+          case None => telegram.sendMessage(incorrectDelimiter("/set_del_in_row_desc"), chat)
+        }
 
       case s"/set_data_model ${model: String}" =>
         parseDataModel(model) match {
@@ -78,14 +75,30 @@ object TextCommandHandler {
                   chat,
                   UserSettings(chat.id, nameCol = name, addrCol = address),
                 )
-              case _ => telegram.sendMessage("Error while parsing data model", chat)
+              case _ =>
+                telegram.sendMessage("Структура данных указана некорректно! Подробнее /set_data_model_desc", chat)
             }
 
           case None =>
             telegram.sendMessage(
-              "Incorrect data model! More Information /set_data_model_desc",
+              "Структура данных указана некорректно! Подробнее /set_data_model_desc",
               chat,
             )
+        }
+
+      case s"/set_single_data_model ${model: String}" =>
+        if (model != "L" & model != "R")
+          telegram.sendMessage(
+            "Неверно указан параметр! Может принимать значение только 'L' или 'R'. Подробнее /set_data_model_desc",
+            chat,
+          )
+        else {
+          setSettingsAndSendMessage(
+            storage,
+            telegram,
+            chat,
+            UserSettings(chat.id, addrCol = if (model == "L") Some(leftPart) else Some(rightPart)),
+          )
         }
 
       case "/settings" =>
@@ -110,15 +123,29 @@ object TextCommandHandler {
 
       case "/set_data_model_desc" => telegram.sendMessage(setDataModelDescription, chat)
 
+      case "/parse_text_desc" => telegram.sendMessage(parseTextDescription, chat)
+
       case s"/set_line_del" =>
-        telegram.sendMessage("This command must have the parameter. More information /set_line_del_desc", chat)
+        telegram.sendMessage("Эта команда должна использоваться с параметром. Подробнее /set_line_del_desc", chat)
 
       case s"/set_del_in_row" =>
-        telegram.sendMessage("This command must have the parameter. More information /set_del_in_row_desc", chat)
+        telegram.sendMessage("Эта команда должна использоваться с параметром. Подробнее /set_del_in_row_desc", chat)
 
       case "/help" => telegram.sendMessage(helpResponse, chat)
-      case _       => telegram.sendMessage(s"Unknown command '$message'", chat)
+      case _       => telegram.sendMessage(s"Неизвестная команда '$message'", chat)
     }
+
+  def getSeparator(in: String): Option[Char] =
+    if (in.startsWith("\\") && in.length == 2)
+      in match {
+        case """\t""" => Some('\t')
+        case """\n""" => Some('\n')
+        case _        => None
+      }
+    else if (in.length == 1 && !in.head.isLetterOrDigit)
+      Some(in.charAt(0))
+    else
+      None
 
   private def setSettingsAndSendMessage[F[_]: Sync](
       storage: Storage[F],
@@ -130,7 +157,7 @@ object TextCommandHandler {
       case Right(_) =>
         for {
           _ <- storage.setUserSettings(us)
-          _ <- telegram.sendMessage("Settings updated successfully! See current /settings", chat)
+          _ <- telegram.sendMessage("Параметры обновлены! Текущие настройки - /settings", chat)
         } yield ()
       case Left(_) =>
         for {
@@ -140,25 +167,18 @@ object TextCommandHandler {
               storage
                 .setUserSettings(us)
                 .flatMap {
-                  case Right(_)  => telegram.sendMessage("Settings updated successfully! See current /settings", chat)
+                  case Right(_)  => telegram.sendMessage("Параметры обновлены! Текущие настройки - /settings", chat)
                   case Left(err) => telegram.sendMessage(err.message, chat)
                 }
             case Left(err) => telegram.sendMessage(err.message, chat) // should never happen
-          }        } yield ()
-
+          }
+        } yield ()
     }
 
-  //    (for {
-//      settings <- storage.setUserSettings(us)
-//      result   <- if (settings.isLeft) storage.createUserSettings(us) else Sync[F].pure(Right(()))
-//    } yield result).flatMap {
-//      case Left(err) => telegram.sendMessage(err.message, chat)
-//      case Right(_)  => telegram.sendMessage("Settings updated successfully! See current /settings", chat)
-//    }
-
   private def parseDataModel(model: String): Option[List[Option[Int]]] = {
-    val sList = model.split("\\s+").toList
-    if (sList.length != sList.distinct.length | sList.length < 2 | sList.length > 3) None
+    val sList    = model.split("\\s+").toList
+    val distList = sList.filter(_.matches("[1-9]")).distinct
+    if (sList.length != distList.length | sList.length < 2 | sList.length > 3) None
     else {
       val optList = sList.map(x => Try[Int](x.toInt).toOption)
       if (optList.contains(None)) None
@@ -167,69 +187,110 @@ object TextCommandHandler {
   }
 
   private val helpResponse =
-    """Available commands:
-      |   /start - Initialize bot. If this is your first time
-      |   /settings - Settings of your bot
-      |   set_data_model - configure position of data in your file. More Information /set_data_model_desc
-      |   set_line_del <new_delimiter> - Set new delimiter in row. More information /set_line_del_desc
-      |   set_del_in_row <new_delimiter> - Set new delimiter in row. More information /set_del_in_row_desc
-      |   //<text message with data for creating map>
-      |   /help - Available commands
-      |   """.stripMargin
+    """Доступные команды:
+      |   /start - Инструкция к боту
+      |   /settings - Настройки бота
+      |   'set_data_model <параметры>' - Задание структуры Ваших данных. Подробнее /set_data_model_desc
+      |   'set_line_del <параметр>' - Задание разделителя между записями. Подробнее /set_line_del_desc
+      |   'set_del_in_row <параметр>' - Задание разделителя между полями одной записи. Подробнее /set_del_in_row_desc
+      |   '//<текст для парсинга>'. Подробнее /parse_text_desc
+      |   /help - Перечень доступных команд""".stripMargin
+
+  private val parseTextDescription =
+    """Команда для разбора данных прямо из текстового сообщения.
+      |Отправьте в виде сообщения данные, отформатированные в
+      |соответствии с настройками (/settings) и получите в ответ карту.
+      |
+      |   Примеры:
+      |//Название какой-то организации, Санкт-Петербург, Коломяжский пр. дом 27
+      |Название еще какой-то организации, пр. Большевиков, д. 25
+      |Ещё одно название организации, Ветеранов пр. 108""".stripMargin
 
   private val setLineDelDescription =
-    """It's command for change line delimiter.
-      |Use ONE symbol, no digit or letter.
-      |If you want to use end of line as delimiter, use "nl".
-      |   Examples:
-      |/set_line_del nl
+    """   Задание разделителя между записями.
+      |В качестве разделителя может использоваться любой одиночный символ, кроме букв, цифр и символов '(' и '\'.
+      |Чтобы использовать в качестве разделителя перенос строки, используйте '\n'
+      |
+      |   Примеры:
+      |/set_line_del \n
       |/set_line_del ;""".stripMargin
 
   private val setDelInRowDescription =
-    """It's command for change delimiter between fields in the line.
-      |Use ONE symbol, no digit or letter.
-      |   Examples:
-      |/set_del_in_row '
+    """   Задание разделителя между полями одной записи.
+      |В качестве разделителя может использоваться любой одиночный символ, кроме букв, цифр и символов '(' и '\'.
+      |Чтобы использовать в качестве разделителя табуляцию, используйте '\t'
+      |
+      |   Примеры:
+      |/set_del_in_row \t
       |/set_del_in_row :""".stripMargin
 
   private val setDataModelDescription =
-    """It's command for set positions of data in your file.
-      |   Command syntax:
-      |/set_data_model <name(Int)> <address(Int)> <info(Int)(Optional)>
-      |where <name> and <address> - required fields with numbers of columns, which contain corresponding data
-      |<info> - optional field, with number of column, which contain additional info about point
-      |   Examples:
-      |/set_data_model 1 2
+    """Задание структуры данных в Вашем файле или передаваемом тексте
+      |   По умолчанию используется data_model 1 2
+      |           | название | адрес |
+      |
+      |   Возможны 2 варианта синтаксиса команды:
+      |   1) Хорошо структурированные данные:
+      |set_data_model <название(число)> <адрес(число)> <дополнительная информация(число)(ОПЦИОНАЛЬНО)>
+      |
+      |Здесь в качестве параметров указываются порядковые номера полей (столбцов), в которых находятся соответствующие данные.
+      |Поля <название> и <адрес> обязательные, поле <дополнительная информация> - передается при наличии
+      |
+      |   Примеры:
+      |/set_data_model 1 2 - указывает, что Ваши данные имеют вид
+      |   | название | адрес |
+      |
       |/set_data_model 2 1 4
+      |   | адрес | название | дополнительная информация |
+      |
+      |
+      |   2) Слабо структурированные данные:
+      |set_single_data_model <параметр>
+      |
+      |Здесь в качестве параметра необходимо указать, в какой части каждой записи находится адрес организации.
+      |Возможные значения
+      | - 'L' - адрес в левой части
+      | - 'R' - адрес в правой части
+      |
+      |   Примеры:
+      |/set_single_data_model L - для данных вида
+      |Санкт-Петербург, Невский пр. 30, Контора "Рога и копыта"
+      |
+      |   Примеры:
+      |/set_single_data_model R - для данных вида
+      |Контора "Рога и копыта", находящаяся по адресу Невский пр., дом 30
       |""".stripMargin
 
   private val startMessage =
-    """Hello! I'm bot and I can:
-      |   1) create map from file
-      |   2) create map from text message
+    """   Привет! Я бот и я могу:
+      |1) Создавать карту из файла с адресами
+      |2) Создавать карту из текстового сообщения с адресами
       |
-      |For successful work:
-      |1) the file must to have simple text extension (".txt", ".csv", etc)
-      |2) the file (or text message) have to contain 2 required fields:
-      |   - address of point (by default, column 1)
-      |   - name of point (by default, column 2)
-      |and 1 optional field:
-      |   - info about point (by default, not defined)
-      | (How to change these settings see /set_data_model_desc)
+      |Чтобы я хорошо делал свою работу, необходимо:
+      |1) Рассказать мне о структуре Ваших данных /set_data_model_desc
+      |   По умолчанию используется data_model 1 2
+      |           | название | адрес |
       |
-      |3) The following delimiters have to use between file (or text message) fields:
-      |   - between lines (by default, '\n' (new line))
-      |   - between fields in one line (by default, ';')
-      | (How to change these settings see /set_line_del and /set_del_in_row_desc)
+      |2) Настроить разделители данных.
+      |   По умолчанию используется:
+      |\n (перенос строки) - между записями /set_line_del_desc
+      |\t - между полями одной записи /set_del_in_row_desc
       |
-      |Stages of interactions with me:
-      |   1) Make sure your file meets the above requirements. If no:
-      |       a) edit your file     OR      b) edit my settings
-      |   2) Send me your file
-      |   3) Get the link to the map
-      |   4) It's all! You're beautiful!
       |
-      |Information about available commands on /help
+      |Этапы работы с ботом:
+      |   1) Убедитесь, что Ваши данные (файл или текст) соответствуют
+      |   приведенным выше требованиям. Если нет, то:
+      |       а) отредактируйте данные
+      |           ИЛИ
+      |       б) отредактируйте настройки бота
       |
-      |Good luck and have fun!""".stripMargin
+      |   2) Передайте данные боту (отправьте файл или сообщение)
+      |
+      |   3) Получите ссылку на карту
+      |
+      |   4) Готово! Вы прекрасны!
+      |
+      |Информация о доступных командах /help
+      |
+      |Приятной работы!""".stripMargin
 }

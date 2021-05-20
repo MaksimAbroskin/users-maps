@@ -3,20 +3,19 @@ package ru.dins.scalaschool.users_maps.storage
 import cats.effect.Sync
 import cats.implicits._
 import doobie.implicits._
+import doobie.postgres.implicits._
 import doobie.postgres.sqlstate
+import doobie.util.Read
 import doobie.util.fragments.setOpt
+import doobie.util.meta.Meta
 import doobie.util.transactor.Transactor.Aux
-import ru.dins.scalaschool.users_maps.Models.{
-  ChatAlreadyExistsError,
-  ChatNotFoundInDbError,
-  ErrorMessage,
-  UserSettings,
-}
+import ru.dins.scalaschool.users_maps.Models.{ChatAlreadyExistsError, ChatNotFoundInDbError, ErrorMessage, UserSettings}
+import ru.dins.scalaschool.users_maps.charMeta
 
 case class PostgresStorage[F[_]: Sync](xa: Aux[F, Unit]) extends Storage[F]() {
 
   override def createUserSettings(us: UserSettings): F[Either[ErrorMessage, UserSettings]] =
-    sql"INSERT INTO users_settings VALUES (${us.chatId}, ${us.lineDelimiter}, ${us.inRowDelimiter}, ${us.nameCol}, ${us.addrCol})".update
+    sql"INSERT INTO users_settings VALUES (${us.chatId}, ${us.lineDelimiter}, ${us.inRowDelimiter.toString}, ${us.nameCol}, ${us.addrCol})".update
       .withUniqueGeneratedKeys[UserSettings](
         "chat_id",
         "line_delimiter",
@@ -44,8 +43,10 @@ case class PostgresStorage[F[_]: Sync](xa: Aux[F, Unit]) extends Storage[F]() {
   override def setUserSettings(us: UserSettings): F[Either[ErrorMessage, UserSettings]] = {
     val lineDelimiterOpt = us.lineDelimiter.map(x => fr"line_delimiter = $x")
     val inRowOpt         = us.inRowDelimiter.map(x => fr"in_row_delimiter = $x")
-    val nameOpt          = us.nameCol.map(x => fr"name_col = $x")
     val addrOpt          = us.addrCol.map(x => fr"addr_col = $x")
+    val nameOpt =
+      if (addrOpt.isDefined & us.nameCol.isEmpty) Some(fr"name_col = null")
+      else us.nameCol.map(x => fr"name_col = $x")
     val infoOpt =
       if (nameOpt.isDefined & addrOpt.isDefined & us.infoCol.isEmpty) Some(fr"info_col = null")
       else us.infoCol.map(x => fr"info_col = $x")

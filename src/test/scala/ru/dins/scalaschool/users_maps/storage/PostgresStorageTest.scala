@@ -11,6 +11,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import ru.dins.scalaschool.users_maps.defaultUserSettings
 import ru.dins.scalaschool.users_maps.Models.{ChatAlreadyExistsError, ChatNotFoundInDbError, UserSettings}
+import ru.dins.scalaschool.users_maps.charMeta
 
 import scala.concurrent.ExecutionContext
 
@@ -102,12 +103,12 @@ class PostgresStorageTest extends AnyFlatSpec with Matchers with TestContainerFo
       sql"INSERT INTO users_settings VALUES (${us.chatId}, ${us.lineDelimiter}, ${us.inRowDelimiter}, ${us.nameCol}, ${us.addrCol})".update.run
         .transact(xa)
 
-    val newUserSettings = UserSettings(chatId = us.chatId, lineDelimiter = Some("-"), inRowDelimiter = Some("'"))
+    val newUserSettings = UserSettings(chatId = us.chatId, lineDelimiter = Some('-'), inRowDelimiter = Some('\''))
 
     for {
       _ <- createNoteForChat
       settings <- storage.setUserSettings(newUserSettings)
-    } yield settings shouldBe Right(us.copy(lineDelimiter = Some("-"), inRowDelimiter = Some("'")))
+    } yield settings shouldBe Right(us.copy(lineDelimiter = Some('-'), inRowDelimiter = Some('\'')))
   }
 
   "set data model" should "return edited userSettings if success" in resetStorage { case (storage, xa) =>
