@@ -10,7 +10,7 @@ package object users_maps {
   val newLine = '\n'
 
   val defaultLineDelimiter: Char  = newLine
-  val defaultInRowDelimiter: Char = '\t'
+  val defaultInRowDelimiter: Char = ';'
   val defaultNameCol: Int         = 1
   val defaultAddrCol: Int         = 2
 
