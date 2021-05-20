@@ -31,7 +31,7 @@ class StringParserTest extends AnyFlatSpec with Matchers {
     val s =
       """Name1:Address1|Name2:Address2|Name3:Address3|""".stripMargin
     StringParser.parse(s, defaultUserSettings) shouldBe Left(
-      FileParsingError("Line #1: Name1:Address1|Name2:Address2|Name3:Address3|")
+      FileParsingError("Строка #1: Name1:Address1|Name2:Address2|Name3:Address3|"),
     )
   }
 
@@ -40,7 +40,7 @@ class StringParserTest extends AnyFlatSpec with Matchers {
       """Name1,Address1
         |Name2,Address2
         |Name3,Address3""".stripMargin
-    StringParser.parse(s, defaultUserSettings) shouldBe Left(FileParsingError("Line #1: Name1,Address1"))
+    StringParser.parse(s, defaultUserSettings) shouldBe Left(FileParsingError("Строка #1: Name1,Address1"))
   }
 
   it should "return notes list if at least one row parsed successful" in {
@@ -49,7 +49,7 @@ class StringParserTest extends AnyFlatSpec with Matchers {
         |Name2;Address2
         |Name3Address3,ERROR""".stripMargin
     StringParser.parse(s, defaultUserSettings.copy(infoCol = Some(3))) shouldBe Right(
-      NotesWithInfo(List(note2), StringParser.parseWithErrReport(1, 3, "Line #1: Name1:Address1:Info1")),
+      NotesWithInfo(List(note2), StringParser.parseWithErrReport(1, 3, "Строка #1: Name1:Address1:Info1")),
     )
   }
 
@@ -61,7 +61,7 @@ class StringParserTest extends AnyFlatSpec with Matchers {
         |Name4|Address4|ERROR
         |Name5/Address5/ERROR""".stripMargin
     StringParser.parse(s, defaultUserSettings) shouldBe Left(
-      FileParsingError("Line #1: Name1:Address1:ERROR"),
+      FileParsingError("Строка #1: Name1:Address1:ERROR"),
     )
   }
 

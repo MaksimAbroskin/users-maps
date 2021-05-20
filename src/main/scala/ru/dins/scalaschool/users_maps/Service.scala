@@ -7,7 +7,11 @@ import maps.GeocoderApi
 import ru.dins.scalaschool.users_maps.storage.Storage
 
 object Service {
-  def start[F[_]: Sync : ContextShift](telegram: TelegramApi[F], geocoder: GeocoderApi[F], storage: Storage[F]): F[Unit] = {
+  def start[F[_]: Sync: ContextShift](
+      telegram: TelegramApi[F],
+      geocoder: GeocoderApi[F],
+      storage: Storage[F],
+  ): F[Unit] = {
 
     val router: Router[F] = Router.apply[F](telegram, geocoder, storage)
 

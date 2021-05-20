@@ -33,7 +33,7 @@ object TelegramModel {
       c.get[Boolean]("ok")
         .flatMap(isOk =>
           if (isOk) c.downField("result").as[List[Success[Message]]].map(sc => Response(sc.asRight))
-          else c.as[Failure].map(flr => Response(flr.asLeft))
+          else c.as[Failure].map(flr => Response(flr.asLeft)),
         )
     }
   }

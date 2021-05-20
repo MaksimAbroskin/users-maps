@@ -24,13 +24,13 @@ object Application extends IOApp {
 
   def app[F[_]: ConcurrentEffect: ContextShift](xa: Aux[F, Unit]): F[ExitCode] =
     for {
-      _ <- Sync[F].delay(logger.info(s"Starting service"))
+      _     <- Sync[F].delay(logger.info(s"Starting service"))
       token <- Sync[F].fromOption(myToken, new IllegalArgumentException("can't find bot token"))
       _ <- BlazeClientBuilder[F](global).resource
         .use { client =>
           val telegram = TelegramApi(client, token)
           val geocoder = YaGeocoder(client)
-          val storage = PostgresStorage(xa)
+          val storage  = PostgresStorage(xa)
           Service.start(telegram, geocoder, storage)
         }
     } yield ExitCode.Success

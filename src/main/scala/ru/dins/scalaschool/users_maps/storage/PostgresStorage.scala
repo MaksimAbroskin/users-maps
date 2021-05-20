@@ -3,11 +3,8 @@ package ru.dins.scalaschool.users_maps.storage
 import cats.effect.Sync
 import cats.implicits._
 import doobie.implicits._
-import doobie.postgres.implicits._
 import doobie.postgres.sqlstate
-import doobie.util.Read
 import doobie.util.fragments.setOpt
-import doobie.util.meta.Meta
 import doobie.util.transactor.Transactor.Aux
 import ru.dins.scalaschool.users_maps.Models.{ChatAlreadyExistsError, ChatNotFoundInDbError, ErrorMessage, UserSettings}
 import ru.dins.scalaschool.users_maps.charMeta
@@ -15,7 +12,7 @@ import ru.dins.scalaschool.users_maps.charMeta
 case class PostgresStorage[F[_]: Sync](xa: Aux[F, Unit]) extends Storage[F]() {
 
   override def createUserSettings(us: UserSettings): F[Either[ErrorMessage, UserSettings]] =
-    sql"INSERT INTO users_settings VALUES (${us.chatId}, ${us.lineDelimiter}, ${us.inRowDelimiter.toString}, ${us.nameCol}, ${us.addrCol})".update
+    sql"INSERT INTO users_settings VALUES (${us.chatId}, ${us.lineDelimiter}, ${us.inRowDelimiter}, ${us.nameCol}, ${us.addrCol})".update
       .withUniqueGeneratedKeys[UserSettings](
         "chat_id",
         "line_delimiter",

@@ -4,14 +4,13 @@ import cats.effect.{ContextShift, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import ru.dins.scalaschool.users_maps.Models.UserSettings
-import ru.dins.scalaschool.users_maps.{defaultUserSettings, leftPart, newLine, rightPart}
 import ru.dins.scalaschool.users_maps.maps.GeocoderApi
 import ru.dins.scalaschool.users_maps.maps.yandex.HtmlHandler
 import ru.dins.scalaschool.users_maps.storage.Storage
 import ru.dins.scalaschool.users_maps.telegram.model.Chat
+import ru.dins.scalaschool.users_maps.{defaultUserSettings, leftPart, rightPart}
 
 import scala.util.Try
-import scala.util.matching.Regex
 
 object TextCommandHandler {
 
@@ -36,12 +35,12 @@ object TextCommandHandler {
       case s"/set_line_del ${d: String}" =>
         getSeparator(d) match {
           case Some(ch) =>
-          setSettingsAndSendMessage(
-            storage,
-            telegram,
-            chat,
-            UserSettings(chat.id, lineDelimiter = Some(ch)),
-          )
+            setSettingsAndSendMessage(
+              storage,
+              telegram,
+              chat,
+              UserSettings(chat.id, lineDelimiter = Some(ch)),
+            )
           case None => telegram.sendMessage(incorrectDelimiter("/set_line_del_desc"), chat)
         }
 

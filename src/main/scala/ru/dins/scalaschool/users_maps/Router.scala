@@ -51,7 +51,7 @@ object Router {
 
         case Message(chat, None, Some(document)) =>
           for {
-            _ <- Sync[F].delay(routerLogger.info(s"received document from chat: $chat"))
+            _           <- Sync[F].delay(routerLogger.info(s"received document from chat: $chat"))
             contentFile <- readUserFile(telegram, document)
 
             userSettings <- storage.getSettings(chat.id)

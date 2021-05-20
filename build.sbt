@@ -9,12 +9,12 @@ lazy val `users-maps` = (project in file("."))
     dockerBaseImage := "adoptopenjdk/openjdk11",
     dockerRepository := Some("eu.gcr.io/dins-scala-school"),
     version in Docker := s"${git.gitHeadCommit.value.map(_.take(7)).getOrElse("UNKNOWN")}",
-    dockerUpdateLatest := true
+    dockerUpdateLatest := true,
   )
   .enablePlugins(DockerPlugin, JavaAppPackaging)
 
 lazy val dependencies =
-  (cats ++ http4s ++ circe ++ fs2 ++ doobie ++ apache ++ tests ++ testContainers ++ mock) :+ logback
+  (cats ++ http4s ++ circe ++ fs2 ++ doobie ++ tests ++ testContainers ++ mock) :+ logback
 
 ThisBuild / scalacOptions ++= Seq(
   "-Xlint:unused",

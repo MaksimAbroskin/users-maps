@@ -47,7 +47,7 @@ object YaPointToMap {
         balloonContentHeader = note.name,
         balloonContentBody = note.info match {
           case Some(info) => s"<p>Адрес: ${note.address}</p><p>Информация: $info</p>"
-          case None => s"Адрес: ${note.address}"
+          case None       => s"Адрес: ${note.address}"
         },
         clusterCaption = s"#${note.id}. ${note.name} ",
         hintContent = note.name,

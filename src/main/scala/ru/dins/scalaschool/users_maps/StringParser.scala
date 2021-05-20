@@ -26,31 +26,35 @@ object StringParser {
 
     val maxAddrLength = 70
 
-    def cutAddr(s: String, direction: Int) = {
+    def cutAddr(s: String, direction: Int) =
       if (direction == leftPart) if (s.length > maxAddrLength) s.substring(0, maxAddrLength) else s
-      else if (direction == rightPart) if (s.length > maxAddrLength) s.substring(s.length - maxAddrLength + 1, s.length) else s
+      else if (direction == rightPart)
+        if (s.length > maxAddrLength) s.substring(s.length - maxAddrLength + 1, s.length) else s
       else s
-    }
 
     if (us.addrCol.isDefined & us.nameCol.isEmpty & us.infoCol.isEmpty) {
       if (us.addrCol.get == leftPart) (Some(Note(id = row._2 + 1, row._1, cutAddr(row._1, leftPart))), None)
       else if (us.addrCol.get == rightPart) (Some(Note(id = row._2 + 1, row._1, cutAddr(row._1, rightPart))), None)
-      else (None, Some(s"Строка #${row._2 + 1}: ${if (row._1.length < 100) row._1 else s"${row._1.substring(0, 99)}..."}"))
+      else
+        (None, Some(s"Строка #${row._2 + 1}: ${if (row._1.length < 100) row._1 else s"${row._1.substring(0, 99)}..."}"))
     } else {
 
       val pseudoNote = row._1.split(us.inRowDelimiter.getOrElse(defaultInRowDelimiter)).toList.map(_.trim)
-      val name = pseudoNote.lift(us.nameCol.getOrElse(defaultNameCol) - 1)
-      val addr = pseudoNote.lift(us.addrCol.getOrElse(defaultAddrCol) - 1)
+      val name       = pseudoNote.lift(us.nameCol.getOrElse(defaultNameCol) - 1)
+      val addr       = pseudoNote.lift(us.addrCol.getOrElse(defaultAddrCol) - 1)
       val info = us.infoCol match {
         case Some(v) => pseudoNote.lift(v - 1)
-        case None => None
+        case None    => None
       }
 
       (addr, name, info) match {
         case (Some(a), Some(n), Some(i)) => (Some(Note(id = row._2 + 1, n, a, Some(i))), None)
-        case (Some(a), Some(n), None) => (Some(Note(id = row._2 + 1, n, a)), None)
+        case (Some(a), Some(n), None)    => (Some(Note(id = row._2 + 1, n, a)), None)
         case _ =>
-          (None, Some(s"Строка #${row._2 + 1}: ${if (row._1.length < 100) row._1 else s"${row._1.substring(0, 99)}..."}"))
+          (
+            None,
+            Some(s"Строка #${row._2 + 1}: ${if (row._1.length < 100) row._1 else s"${row._1.substring(0, 99)}..."}"),
+          )
       }
     }
   }

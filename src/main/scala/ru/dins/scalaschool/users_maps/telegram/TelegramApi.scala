@@ -56,7 +56,9 @@ object TelegramApi {
     override def getUpdates(startFrom: Offset): Stream[F, Update] = {
       def getListUpdates(offset: Offset): F[List[Success[Update]]] =
         client
-          .expect[TelegramModel.Response](Request[F](uri = getUpdatesEndpoint +? ("offset", offset.value), method = Method.GET))
+          .expect[TelegramModel.Response](
+            Request[F](uri = getUpdatesEndpoint +? ("offset", offset.value), method = Method.GET),
+          )
           .flatMap { response =>
             response.data match {
               case Left(flr)      => Sync[F].delay(logger.info(s"received failure from telegram: $flr")).as(List.empty)
