@@ -64,9 +64,11 @@ object Models {
     val message: String =
       s"""Текущие настройки:
          |Разделители:
-         |  '${lineDelimiter.getOrElse("Не определён")}' - разделитель между записями. Подробнее /set_line_del_desc
-         |  '${inRowDelimiter
-        .getOrElse("Не определён")}' - разделитель между полями записи. Подробнее /set_del_in_row_desc
+         |  '${charAsString(lineDelimiter.getOrElse('N'))}' - разделитель между записями. Подробнее /set_line_del_desc
+         |  '${charAsString(
+        inRowDelimiter
+          .getOrElse('N'),
+      )}' - разделитель между полями записи. Подробнее /set_del_in_row_desc
          |
          |Структура данных. Подробнее /set_data_model_desc:
          |  ${nameCol.getOrElse("Не определён")} - Название

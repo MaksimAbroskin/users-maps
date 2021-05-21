@@ -7,6 +7,12 @@ package object users_maps {
   val leftPart  = 99
   val rightPart = 101
 
+  def charAsString(ch: Char): String = ch match {
+    case '\n' => """\n"""
+    case '\t' => """\t"""
+    case x    => x.toString
+  }
+
   val newLine = '\n'
 
   val defaultLineDelimiter: Char  = newLine
