@@ -20,12 +20,13 @@ object Application extends IOApp {
     app[IO](Database.xa)
   }
 
-  val myToken: Option[String] = Some("1792790353:AAE22Vk7SgPNjXaJ8oH5TLqn_d9KWCbBY54")
+  val myToken: Option[String]      = Some("1792790353:AAE22Vk7SgPNjXaJ8oH5TLqn_d9KWCbBY54")
+  val testBotToken: Option[String] = Some("1757140027:AAEswSrV0FWwDyrkDfwo4KAsrIf9zsS6cZw")
 
   def app[F[_]: ConcurrentEffect: ContextShift](xa: Aux[F, Unit]): F[ExitCode] =
     for {
       _     <- Sync[F].delay(logger.info(s"Starting service"))
-      token <- Sync[F].fromOption(myToken, new IllegalArgumentException("can't find bot token"))
+      token <- Sync[F].fromOption(testBotToken, new IllegalArgumentException("can't find bot token"))
       _ <- BlazeClientBuilder[F](global).resource
         .use { client =>
           val telegram = TelegramApi(client, token)

@@ -3,6 +3,7 @@ package ru.dins.scalaschool.users_maps.telegram
 import cats.effect.{ContextShift, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
+import cats.syntax.applicativeError._
 import ru.dins.scalaschool.users_maps.Models.UserSettings
 import ru.dins.scalaschool.users_maps.maps.GeocoderApi
 import ru.dins.scalaschool.users_maps.maps.yandex.HtmlHandler
@@ -37,7 +38,10 @@ object TextCommandHandler {
           _ <- telegram.sendMessage(startMessage, chat)
         } yield ()
 
-      case s"//${s: String}" => HtmlHandler().stringToHtml(telegram, geocoder, storage, chat, s)
+      case s"//${s: String}" =>
+        HtmlHandler()
+          .stringToHtml(telegram, geocoder, storage, chat, s)
+          .handleErrorWith(_ => Sync[F].delay(println("File didn't create 3")))
 
       case s"/set_line_del ${d: String}" =>
         getSeparator(d) match {

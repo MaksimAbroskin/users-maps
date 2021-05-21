@@ -4,6 +4,7 @@ import cats.Applicative
 import cats.effect.{ContextShift, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
+import cats.syntax.applicativeError._
 import io.circe.syntax.EncoderOps
 import org.slf4j.LoggerFactory
 import ru.dins.scalaschool.users_maps.Models.NotesWithInfo
@@ -27,7 +28,7 @@ final class Router[F[_]: Applicative] private (routesDefinitions: Router.Telegra
 
 object Router {
   private val routerLogger     = LoggerFactory.getLogger("telegram-service")
-  private def path(chat: Chat) = s"src/main/resources/usersPoints/chat_${chat.id.toString}_Map.html"
+  private def path(chat: Chat) = s"chat_${chat.id.toString}_Map.html"
 
   // represent a way of processing some type of update from user
   final case class TelegramUpdateRoute[O](name: String)(val definition: PartialFunction[Update, O]) {
@@ -105,12 +106,16 @@ object Router {
   ): F[Unit] = {
     val jsonNotes = notesWithInfo.notes.map(x => YaOneFeature(x))
     for {
+      _ <- Sync[F].delay(routerLogger.info(s"Before create file"))
       _ <- HtmlHandler[F]().createFile(
         path(chat),
         fs2.Stream(YaData(features = jsonNotes).asJson.toString()),
       )
+      _ <- Sync[F].delay(routerLogger.info(s"After create file"))
       _ <- telegram.sendMessage(notesWithInfo.info, chat)
-      _ <- telegram.sendDocument(chat, new File(path(chat)))
+      _ <- telegram
+        .sendDocument(chat, new File(path(chat)))
+        .handleErrorWith(_ => Sync[F].delay(println("File didn't create 1")))
     } yield ()
   }
 }

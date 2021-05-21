@@ -82,6 +82,7 @@ final case class HtmlHandler[F[_]: Sync: ContextShift]() {
     upstream
       .through(text.utf8Encode)
       .through(io.file.writeAll(Paths.get(fileName), blocker))
+      .handleErrorWith(_ => Stream(Sync[F].delay(println("File didn't create 2"))))
 
   def createFile(fileName: String, upstream: Stream[F, String]): F[Unit] = (for {
     _ <- Stream
