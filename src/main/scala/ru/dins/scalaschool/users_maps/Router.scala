@@ -29,7 +29,7 @@ object Router {
   private val routerLogger                           = LoggerFactory.getLogger("telegram-service")
   private def directory(chat: Chat)                  = s"/home/maps/${chat.id}"
   private def path(directory: String, mapId: String) = s"$directory/$mapId.json"
-  private def url(chat: Chat, mapId: String)         = s"$host:$port/map.html?chat_id=${chat.id}&map_id=$mapId"
+  private def url(chat: Chat, mapId: String)         = s"$host/map.html?chat_id=${chat.id}&map_id=$mapId"
 
   // represent a way of processing some type of update from user
   final case class TelegramUpdateRoute[O](name: String)(val definition: PartialFunction[Update, O]) {

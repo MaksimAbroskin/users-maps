@@ -35,7 +35,7 @@ object Application extends IOApp {
 //      _ <- Utils.createFile[F]("/home/maps/testdir", "aecaa19c-145d-49c7-baf6-181c3de0f78f.json", fs2.Stream.emit("String"))
       _ <- (for {
         _ <- BlazeServerBuilder[F](executionContext)
-          .bindHttp(host = host, port = port)
+          .bindHttp(host = localHost, port = port)
           .withHttpApp(fileService[F](FileService.Config("/home/maps", blocker)).orNotFound)
           .resource
         client <- BlazeClientBuilder[F](executionContext).resource
