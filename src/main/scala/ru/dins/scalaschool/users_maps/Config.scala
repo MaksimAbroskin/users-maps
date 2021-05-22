@@ -13,8 +13,8 @@ object Config {
   }
 
   object Http {
-    lazy val localHost = "0.0.0.0"
+    lazy val localHost    = "0.0.0.0"
     lazy val host: String = sys.env.getOrElse("BASE_URL", s"$localHost:$port")
-    lazy val port: Int = 8080
+    lazy val port: Int    = 8080
   }
 }
