@@ -11,4 +11,9 @@ object Config {
     lazy val user: String = sys.env.getOrElse("DB_USER", postgres)
     lazy val pass: String = sys.env.getOrElse("DB_PASS", postgres)
   }
+
+  object Http {
+    lazy val host: String = "0.0.0.0"
+    lazy val port: Int = 8080
+  }
 }
