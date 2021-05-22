@@ -1,0 +1,92 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: $NAMESPACE
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: $APPNAME
+  namespace: $NAMESPACE
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: $APPNAME
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: $APPNAME
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: $APPNAME
+          image: $IMAGE
+          volumeMounts:
+            - mountPath: /home/maps
+              name: maps
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_HOST
+              value: "postgres-postgresql.prod.svc.cluster.local"
+            - name: DB_PORT
+              value: "5432"
+            - name: KAFKA_BOOTSTRAP
+              value: "kafka-0.kafka-headless.prod.svc.cluster.local:9092"
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: dbconfig
+                  key: dbname
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: dbconfig
+                  key: dbuser
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: dbpass
+                  key: password
+            - name: BASE_URL
+              value: "/$APPNAME"
+      volumes:
+        - name: maps
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: $APPNAME-service
+  namespace: $NAMESPACE
+spec:
+  selector:
+    app: $APPNAME
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: $APPNAME-ingress
+  namespace: $NAMESPACE
+  annotations:
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      rewrite ^/$APPNAME/docs/?$ /$APPNAME/docs/index.html?url=/$APPNAME/docs/docs.yaml permanent;
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/proxy-body-size: 8m
+spec:
+  rules:
+    - host: scala-school-final.dins.ru
+      http:
+        paths:
+          - backend:
+              serviceName: $APPNAME-service
+              servicePort: 80
+            path: /$APPNAME(/|$)(.*)

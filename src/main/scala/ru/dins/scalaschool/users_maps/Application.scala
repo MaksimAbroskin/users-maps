@@ -31,7 +31,7 @@ object Application extends IOApp {
       _     <- Sync[F].delay(logger.info(s"Starting service"))
       token <- Sync[F].fromOption(myToken, new IllegalArgumentException("can't find bot token"))
 //      _ <- Utils.createDirectory[F]("/home/maps")
-//      _ <- Utils.copyFile[F]("/opt/docker/resources/map.html", "/home/maps/map.html")
+      _ <- Utils.copyFile[F]("/opt/docker/resources/map.html", "/home/maps/map.html")
 //      _ <- Utils.createFile[F]("/home/maps/testdir", "aecaa19c-145d-49c7-baf6-181c3de0f78f.json", fs2.Stream.emit("String"))
       _ <- (for {
         _ <- BlazeServerBuilder[F](executionContext)

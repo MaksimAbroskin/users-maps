@@ -38,8 +38,6 @@ Deploy:
     - export APP_VERSION=${VERSION:-$GIT_VERSION}
     - export NAMESPACE=$(echo $CI_PROJECT_ROOT_NAMESPACE | sed 's/\.//')
     - export IMAGE="eu.gcr.io/dins-scala-school/$APPNAME:$APP_VERSION"
-    - ls
-    - envsubst < deployments/common/deploy.yaml > deploy.yaml
     - cat deploy.yaml
     - gcloud auth activate-service-account --key-file=<(echo $KEYFILE)
     - gcloud config set project dins-scala-school

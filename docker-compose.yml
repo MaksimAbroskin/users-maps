@@ -5,8 +5,8 @@ services:
     ports:
       - '8080:8080'
     user: root
-#    volumes:
-#      - maps:/home/maps:rw
+    volumes:
+      - maps:/home/maps:rw
     depends_on:
       - postgres
   postgres:
@@ -17,5 +17,5 @@ services:
       - POSTGRES_PASSWORD=postgres
     ports:
       - '5432:5432'
-#volumes:
-#  maps:
+volumes:
+  maps:
