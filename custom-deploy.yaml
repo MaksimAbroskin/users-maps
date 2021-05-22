@@ -22,7 +22,8 @@ spec:
         app: $APPNAME
     spec:
       securityContext:
-        fsGroup: 1000
+        fsGroup: 2000
+        runAsUser: 1000
       containers:
         - name: $APPNAME
           image: $IMAGE
@@ -57,6 +58,8 @@ spec:
               value: "/$APPNAME"
       volumes:
         - name: maps
+          persistentVolumeClaim:
+            claimName: pvc-maps
 ---
 apiVersion: v1
 kind: Service
