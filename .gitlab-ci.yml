@@ -38,8 +38,8 @@ Deploy:
     - export APP_VERSION=${VERSION:-$GIT_VERSION}
     - export NAMESPACE=$(echo $CI_PROJECT_ROOT_NAMESPACE | sed 's/\.//')
     - export IMAGE="eu.gcr.io/dins-scala-school/$APPNAME:$APP_VERSION"
-    - cat deploy.yaml
+    - cat custom-deploy.yaml
     - gcloud auth activate-service-account --key-file=<(echo $KEYFILE)
     - gcloud config set project dins-scala-school
     - gcloud container clusters get-credentials scala-school-cluster --region=europe-north1
-    - kubectl apply -f deploy.yaml
+    - kubectl apply -f custom-deploy.yaml
