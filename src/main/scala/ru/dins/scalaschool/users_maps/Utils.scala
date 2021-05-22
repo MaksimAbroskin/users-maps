@@ -14,11 +14,13 @@ object Utils {
 //      .through(text.lines)
 //      .evalTap(s => Sync[F].pure(println(s)))
 //      .through(text.utf8Encode)
-      .through(io.file.writeAll(
-        Paths.get(toPath),
-        blocker,
-        List(StandardOpenOption.TRUNCATE_EXISTING)
-      ))
+      .through(
+        io.file.writeAll(
+          Paths.get(toPath),
+          blocker,
+          List(StandardOpenOption.TRUNCATE_EXISTING),
+        ),
+      )
       .compile
       .drain
 

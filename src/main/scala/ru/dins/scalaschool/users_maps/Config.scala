@@ -14,6 +14,6 @@ object Config {
 
   object Http {
     lazy val host: String = "0.0.0.0"
-    lazy val port: Int = 8080
+    lazy val port: Int    = 8080
   }
 }

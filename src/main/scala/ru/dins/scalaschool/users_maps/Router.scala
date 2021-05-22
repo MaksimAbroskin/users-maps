@@ -26,10 +26,10 @@ final class Router[F[_]: Applicative] private (routesDefinitions: Router.Telegra
 }
 
 object Router {
-  private val routerLogger     = LoggerFactory.getLogger("telegram-service")
-  private def directory(chat: Chat) = s"/home/maps/${chat.id}"
+  private val routerLogger                           = LoggerFactory.getLogger("telegram-service")
+  private def directory(chat: Chat)                  = s"/home/maps/${chat.id}"
   private def path(directory: String, mapId: String) = s"$directory/$mapId.json"
-  private def url(chat: Chat, mapId: String) = s"$host:$port/map.html?chat_id=${chat.id}&map_id=$mapId"
+  private def url(chat: Chat, mapId: String)         = s"$host:$port/map.html?chat_id=${chat.id}&map_id=$mapId"
 
   // represent a way of processing some type of update from user
   final case class TelegramUpdateRoute[O](name: String)(val definition: PartialFunction[Update, O]) {
@@ -106,8 +106,8 @@ object Router {
       notesWithInfo: NotesWithInfo,
   ): F[Unit] = {
     val jsonNotes = notesWithInfo.notes.map(x => YaOneFeature(x))
-    val mapId = UUID.randomUUID().toString
-    val dir = directory(chat)
+    val mapId     = UUID.randomUUID().toString
+    val dir       = directory(chat)
     for {
       _ <- Utils.createDirectory[F](dir)
       _ <- Utils.createFile[F](
