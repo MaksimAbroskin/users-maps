@@ -10,6 +10,7 @@ lazy val `users-maps` = (project in file("."))
     dockerRepository := Some("eu.gcr.io/dins-scala-school"),
     version in Docker := s"${git.gitHeadCommit.value.map(_.take(7)).getOrElse("UNKNOWN")}",
     dockerUpdateLatest := true,
+    mappings.in(Universal) += (sourceDirectory.value / "main" / "resources" / "map.html", "resources/map.html")
   )
   .enablePlugins(DockerPlugin, JavaAppPackaging)
 

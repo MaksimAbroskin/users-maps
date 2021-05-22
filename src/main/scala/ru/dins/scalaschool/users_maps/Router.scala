@@ -4,19 +4,18 @@ import cats.Applicative
 import cats.effect.{ContextShift, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import cats.syntax.applicativeError._
 import io.circe.syntax.EncoderOps
 import org.slf4j.LoggerFactory
+import ru.dins.scalaschool.users_maps.Config.Http._
 import ru.dins.scalaschool.users_maps.Models.NotesWithInfo
 import ru.dins.scalaschool.users_maps.maps.GeocoderApi
-import ru.dins.scalaschool.users_maps.maps.yandex.HtmlHandler
 import ru.dins.scalaschool.users_maps.maps.yandex.YaPointToMap.{YaData, YaOneFeature}
 import ru.dins.scalaschool.users_maps.storage.Storage
-import ru.dins.scalaschool.users_maps.telegram.model.{Chat, Document}
 import ru.dins.scalaschool.users_maps.telegram.model.TelegramModel.{Message, Update}
+import ru.dins.scalaschool.users_maps.telegram.model.{Chat, Document}
 import ru.dins.scalaschool.users_maps.telegram.{TelegramApi, TextCommandHandler}
 
-import java.io.File
+import java.util.UUID
 
 final class Router[F[_]: Applicative] private (routesDefinitions: Router.TelegramUpdateRoute[F[Unit]]*) {
   private val composedRoute: PartialFunction[Update, F[Unit]] =
@@ -28,7 +27,9 @@ final class Router[F[_]: Applicative] private (routesDefinitions: Router.Telegra
 
 object Router {
   private val routerLogger     = LoggerFactory.getLogger("telegram-service")
-  private def path(chat: Chat) = s"chat_${chat.id.toString}_Map.html"
+  private def directory(chat: Chat) = s"/home/maps/${chat.id}"
+  private def path(directory: String, mapId: String) = s"$directory/$mapId.json"
+  private def url(chat: Chat, mapId: String) = s"$host:$port/map.html?chat_id=${chat.id}&map_id=$mapId"
 
   // represent a way of processing some type of update from user
   final case class TelegramUpdateRoute[O](name: String)(val definition: PartialFunction[Update, O]) {
@@ -105,17 +106,16 @@ object Router {
       notesWithInfo: NotesWithInfo,
   ): F[Unit] = {
     val jsonNotes = notesWithInfo.notes.map(x => YaOneFeature(x))
+    val mapId = UUID.randomUUID().toString
+    val dir = directory(chat)
     for {
-      _ <- Sync[F].delay(routerLogger.info(s"Before create file"))
-      _ <- HtmlHandler[F]().createFile(
-        path(chat),
+      _ <- Utils.createDirectory[F](dir)
+      _ <- Utils.createFile[F](
+        path(dir, mapId),
         fs2.Stream(YaData(features = jsonNotes).asJson.toString()),
       )
-      _ <- Sync[F].delay(routerLogger.info(s"After create file"))
       _ <- telegram.sendMessage(notesWithInfo.info, chat)
-      _ <- telegram
-        .sendDocument(chat, new File(path(chat)))
-        .handleErrorWith(_ => Sync[F].delay(println("File didn't create 1")))
+      _ <- telegram.sendMessage(url(chat, mapId), chat)
     } yield ()
   }
 }
