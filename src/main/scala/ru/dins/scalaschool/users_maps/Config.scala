@@ -14,12 +14,7 @@ object Config {
 
   object Http {
     lazy val localHost = "0.0.0.0"
-    lazy val host: String =
-      sys.env
-        .get("APPNAME")
-        .filterNot(_.isEmpty)
-        .map(appName => s"scala-school-final.dins.ru/$appName")
-        .getOrElse(s"$localHost:$port")
+    lazy val host: String = sys.env.getOrElse("BASE_URL", s"$localHost:$port")
     lazy val port: Int = 8080
   }
 }

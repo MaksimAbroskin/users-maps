@@ -55,7 +55,7 @@ spec:
                   name: dbpass
                   key: password
             - name: BASE_URL
-              value: "/$APPNAME"
+              value: "scala-school-final.dins.ru/$APPNAME"
       volumes:
         - name: maps
           persistentVolumeClaim:
