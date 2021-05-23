@@ -22,24 +22,24 @@ object StringParser {
   private def parseRow(
       row: (String, Int),
       us: UserSettings,
-  ): (Option[Note], Option[String]) = {
-
-    val maxAddrLength = 70
-
-    def cutAddr(s: String, direction: Int) =
-      if (direction == leftPart) if (s.length > maxAddrLength) s.substring(0, maxAddrLength) else s
-      else if (direction == rightPart)
-        if (s.length > maxAddrLength) s.substring(s.length - maxAddrLength + 1, s.length) else s
-      else s
+  ): Either[String, Note] = {
+    val s     = row._1
+    val index = row._2 + 1
 
     if (us.addrCol.isDefined & us.nameCol.isEmpty & us.infoCol.isEmpty) {
-      if (us.addrCol.get == leftPart) (Some(Note(id = row._2 + 1, row._1, cutAddr(row._1, leftPart))), None)
-      else if (us.addrCol.get == rightPart) (Some(Note(id = row._2 + 1, row._1, cutAddr(row._1, rightPart))), None)
+      val direction = us.addrCol.getOrElse(99)
+      val clippedAddr =
+        if ((direction == leftPart) && (s.length > maxAddrLength)) s.substring(0, maxAddrLength)
+        else if ((direction == rightPart) && (s.length > maxAddrLength)) s.substring(s.length - maxAddrLength)
+        else s
+
+      if (direction == leftPart) Right(Note(id = index, s, clippedAddr))
+      else if (direction == rightPart) Right(Note(id = index, s, clippedAddr))
       else
-        (None, Some(s"Строка #${row._2 + 1}: ${if (row._1.length < 100) row._1 else s"${row._1.substring(0, 99)}..."}"))
+        Left(s"Строка #$index: ${if (s.length < 100) s else s"${s.substring(0, 99)}..."}")
     } else {
 
-      val pseudoNote = row._1.split(us.inRowDelimiter.getOrElse(defaultInRowDelimiter)).toList.map(_.trim)
+      val pseudoNote = s.split(us.inRowDelimiter.getOrElse(defaultInRowDelimiter)).toList.map(_.trim)
       val name       = pseudoNote.lift(us.nameCol.getOrElse(defaultNameCol) - 1)
       val addr       = pseudoNote.lift(us.addrCol.getOrElse(defaultAddrCol) - 1)
       val info = us.infoCol match {
@@ -48,13 +48,9 @@ object StringParser {
       }
 
       (addr, name, info) match {
-        case (Some(a), Some(n), Some(i)) => (Some(Note(id = row._2 + 1, n, a, Some(i))), None)
-        case (Some(a), Some(n), None)    => (Some(Note(id = row._2 + 1, n, a)), None)
-        case _ =>
-          (
-            None,
-            Some(s"Строка #${row._2 + 1}: ${if (row._1.length < 100) row._1 else s"${row._1.substring(0, 99)}..."}"),
-          )
+        case (Some(a), Some(n), Some(i)) => Right(Note(id = index, n, a, Some(i)))
+        case (Some(a), Some(n), None)    => Right(Note(id = index, n, a))
+        case _                           => Left(s"Строка #$index: ${if (s.length < 100) row._1 else s"${s.substring(0, 99)}..."}")
       }
     }
   }
@@ -78,8 +74,8 @@ object StringParser {
     val notes = rows.toList.zipWithIndex
       .map(row => parseRow(row, us))
 
-    val result     = notes.flatMap(_._1)
-    val errExample = notes.flatMap(_._2).headOption.getOrElse("")
+    val result     = notes.flatMap(x => x.toOption)
+    val errExample = notes.find(_.isLeft).flatMap(_.swap.toOption).getOrElse("")
 
     if (result.isEmpty) Left(FileParsingError(errExample))
     else {

@@ -28,7 +28,7 @@ final case class HtmlHandler[F[_]: Sync: ContextShift]() {
             case Left(err) =>
               telegram.sendMessage(err.message, chat)
               users_maps.defaultUserSettings.copy(chatId = chat.id)
-            case Right(userSettings) => userSettings
+            case Right(us) => us
           },
         )
       _ <- notes match {

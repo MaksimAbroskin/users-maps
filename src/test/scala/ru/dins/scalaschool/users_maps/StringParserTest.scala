@@ -65,4 +65,29 @@ class StringParserTest extends AnyFlatSpec with Matchers {
     )
   }
 
+  it should "return notes list for purely structured data with left address" in {
+    val singleNote1 = Note(
+      1,
+      "Address1:Info1 Name _  and more and , and more another information",
+      "Address1:Info1 Name _  and more and , and more ano",
+    )
+    val singleNote2 = Note(
+      2,
+      "Address2 inf NAme another letters, digits, words etc etc",
+      "Address2 inf NAme another letters, digits, words e",
+    )
+    val singleNote3 = Note(
+      3,
+      "Name3Address3,ERROR",
+      "Name3Address3,ERROR",
+    )
+    val s =
+      """Address1:Info1 Name _  and more and , and more another information
+        |Address2 inf NAme another letters, digits, words etc etc
+        |Name3Address3,ERROR""".stripMargin
+    StringParser.parse(s, defaultUserSettings.copy(nameCol = None, addrCol = Some(99))) shouldBe Right(
+      NotesWithInfo(List(singleNote1, singleNote2, singleNote3), StringParser.parseNoErrReport(3, 3)),
+    )
+  }
+
 }

@@ -4,19 +4,12 @@ import cats.effect.{ContextShift, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.applicativeError._
-import ru.dins.scalaschool.users_maps.Models.UserSettings
+import ru.dins.scalaschool.users_maps.Models.{ErrorMessage, UserSettings}
 import ru.dins.scalaschool.users_maps.maps.GeocoderApi
 import ru.dins.scalaschool.users_maps.maps.yandex.HtmlHandler
 import ru.dins.scalaschool.users_maps.storage.Storage
 import ru.dins.scalaschool.users_maps.telegram.model.Chat
-import ru.dins.scalaschool.users_maps.{
-  charAsString,
-  defaultInRowDelimiter,
-  defaultLineDelimiter,
-  defaultUserSettings,
-  leftPart,
-  rightPart,
-}
+import ru.dins.scalaschool.users_maps._
 
 import scala.util.Try
 
@@ -69,31 +62,22 @@ object TextCommandHandler {
 
       case s"/set_data_model ${model: String}" =>
         parseDataModel(model) match {
-          case Some(optList) =>
-            optList match {
-              case name :: address :: info :: Nil =>
-                setSettingsAndSendMessage(
-                  storage,
-                  telegram,
-                  chat,
-                  UserSettings(chat.id, nameCol = name, addrCol = address, infoCol = info),
-                )
-              case name :: address :: Nil =>
-                setSettingsAndSendMessage(
-                  storage,
-                  telegram,
-                  chat,
-                  UserSettings(chat.id, nameCol = name, addrCol = address),
-                )
-              case _ =>
-                telegram.sendMessage("Структура данных указана некорректно! Подробнее /set_data_model_desc", chat)
-            }
-
-          case None =>
-            telegram.sendMessage(
-              "Структура данных указана некорректно! Подробнее /set_data_model_desc",
+          case name :: address :: info :: Nil =>
+            setSettingsAndSendMessage(
+              storage,
+              telegram,
               chat,
+              UserSettings(chat.id, nameCol = name, addrCol = address, infoCol = info),
             )
+          case name :: address :: Nil =>
+            setSettingsAndSendMessage(
+              storage,
+              telegram,
+              chat,
+              UserSettings(chat.id, nameCol = name, addrCol = address),
+            )
+          case _ =>
+            telegram.sendMessage("Структура данных указана некорректно! Подробнее /set_data_model_desc", chat)
         }
 
       case s"/set_single_data_model ${model: String}" =>
@@ -146,53 +130,43 @@ object TextCommandHandler {
     }
 
   def getSeparator(in: String): Option[Char] =
-    if (in.startsWith("\\") && in.length == 2)
-      in match {
-        case """\t""" => Some('\t')
-        case """\n""" => Some('\n')
-        case _        => None
-      }
-    else if (in.length == 1 && !in.head.isLetterOrDigit)
-      Some(in.charAt(0))
-    else
-      None
+    if (in == """\t""") Some('\t')
+    else if (in == """\n""") Some('\n')
+    else if (in.length == 1 && !in.head.isLetterOrDigit) Some(in.charAt(0))
+    else None
 
   private def setSettingsAndSendMessage[F[_]: Sync](
       storage: Storage[F],
       telegram: TelegramApi[F],
       chat: Chat,
       us: UserSettings,
-  ) =
+  ) = {
+    def trySet(e: F[Either[ErrorMessage, UserSettings]]): F[Unit] = e.flatMap {
+      case Right(_)  => telegram.sendMessage("Параметры обновлены! Текущие настройки - /settings", chat)
+      case Left(err) => telegram.sendMessage(err.message, chat)
+    }
+
     storage.getSettings(chat.id).flatMap {
-      case Right(_) =>
-        for {
-          _ <- storage.setUserSettings(us)
-          _ <- telegram.sendMessage("Параметры обновлены! Текущие настройки - /settings", chat)
-        } yield ()
+      case Right(_) => trySet(storage.setUserSettings(us))
       case Left(_) =>
         for {
           create <- storage.createUserSettings(defaultUserSettings)
           _ <- create match {
-            case Right(_) =>
-              storage
-                .setUserSettings(us)
-                .flatMap {
-                  case Right(_)  => telegram.sendMessage("Параметры обновлены! Текущие настройки - /settings", chat)
-                  case Left(err) => telegram.sendMessage(err.message, chat)
-                }
-            case Left(err) => telegram.sendMessage(err.message, chat) // should never happen
+            case Right(_)  => trySet(storage.setUserSettings(us))
+            case Left(err) => telegram.sendMessage(err.message, chat)
           }
         } yield ()
     }
+  }
 
-  private def parseDataModel(model: String): Option[List[Option[Int]]] = {
+  private def parseDataModel(model: String): List[Option[Int]] = {
     val sList    = model.split("\\s+").toList
     val distList = sList.filter(_.matches("[1-9]")).distinct
-    if (sList.length != distList.length | sList.length < 2 | sList.length > 3) None
+    if (sList.length != distList.length | sList.length < 2 | sList.length > 3) Nil
     else {
       val optList = sList.map(x => Try[Int](x.toInt).toOption)
-      if (optList.contains(None)) None
-      else Some(optList)
+      if (optList.contains(None)) Nil
+      else optList
     }
   }
 
