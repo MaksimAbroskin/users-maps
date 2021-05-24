@@ -10,22 +10,15 @@ object Utils {
   def copyFile[F[_]: Sync: ContextShift](fromPath: String, toPath: String)(implicit blocker: Blocker): F[Unit] =
     io.file
       .readAll[F](Paths.get(fromPath), blocker, 4096)
-//      .through(text.utf8Decode)
-//      .through(text.lines)
-//      .evalTap(s => Sync[F].pure(println(s)))
-//      .through(text.utf8Encode)
       .through(
         io.file.writeAll(
           Paths.get(toPath),
           blocker,
-          List(StandardOpenOption.TRUNCATE_EXISTING),
+          List(StandardOpenOption.CREATE),
         ),
       )
       .compile
       .drain
-
-  def printPWD[F[_]: Sync](): F[Unit] =
-    Sync[F].pure(println(Paths.get(".").toAbsolutePath))
 
   def createFile[F[_]: Sync: ContextShift](
       path: String,
