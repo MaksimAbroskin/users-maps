@@ -24,111 +24,117 @@ object TextCommandHandler {
       storage: Storage[F],
       telegram: TelegramApi[F],
       geocoder: GeocoderApi[F],
-  ): F[Unit] =
-    message match {
-      case "/start" =>
-        for {
-          _ <- telegram.sendMessage(startMessage, chat)
-        } yield ()
+  ): F[Unit] = {
+    if (message.length > 4000) telegram.sendMessage("Слишком длинное сообщение!", chat)
+    else {
+      message match {
+        case "/start" =>
+          for {
+            _ <- telegram.sendMessage(startMessage, chat)
+          } yield ()
 
-      case s"//${s: String}" =>
-        HtmlHandler()
-          .stringToHtml(telegram, geocoder, storage, chat, s)
-          .handleErrorWith(_ => Sync[F].delay(println("File didn't create 3")))
+        case s"//${s: String}" =>
+          HtmlHandler()
+            .stringToHtml(telegram, geocoder, storage, chat, s)
+            .handleErrorWith(_ => Sync[F].delay(println("File didn't create 3")))
 
-      case s"/set_line_del ${d: String}" =>
-        getSeparator(d) match {
-          case Some(ch) =>
-            setSettingsAndSendMessage(
-              storage,
-              telegram,
-              chat,
-              UserSettings(chat.id, lineDelimiter = Some(ch)),
-            )
-          case None => telegram.sendMessage(incorrectDelimiter("/set_line_del_desc"), chat)
-        }
-
-      case s"/set_del_in_row ${d: String}" =>
-        getSeparator(d) match {
-          case Some(ch) =>
-            setSettingsAndSendMessage(
-              storage,
-              telegram,
-              chat,
-              UserSettings(chat.id, inRowDelimiter = Some(ch)),
-            )
-          case None => telegram.sendMessage(incorrectDelimiter("/set_del_in_row_desc"), chat)
-        }
-
-      case s"/set_data_model ${model: String}" =>
-        parseDataModel(model) match {
-          case name :: address :: info :: Nil =>
-            setSettingsAndSendMessage(
-              storage,
-              telegram,
-              chat,
-              UserSettings(chat.id, nameCol = name, addrCol = address, infoCol = info),
-            )
-          case name :: address :: Nil =>
-            setSettingsAndSendMessage(
-              storage,
-              telegram,
-              chat,
-              UserSettings(chat.id, nameCol = name, addrCol = address),
-            )
-          case _ =>
-            telegram.sendMessage("Структура данных указана некорректно! Подробнее /set_data_model_desc", chat)
-        }
-
-      case s"/set_single_data_model ${model: String} ${city: String}" =>
-        if (model != "L" & model != "R")
-          telegram.sendMessage(
-            "Неверно указан параметр! Может принимать значение только 'L' или 'R'. Подробнее /set_data_model_desc",
-            chat,
-          )
-        else if (city.isEmpty) telegram.sendMessage("Необходимо указать город!", chat)
-        else {
-          setSettingsAndSendMessage(
-            storage,
-            telegram,
-            chat,
-            UserSettings(chat.id, addrCol = if (model == "L") Some(leftPart) else Some(rightPart), city = Some(city)),
-          )
-        }
-
-      case "/settings" =>
-        for {
-          settings <- storage.getSettings(chat.id)
-          _ <- settings match {
-            case Left(_) =>
-              for {
-                create <- storage.createUserSettings(defaultUserSettings.copy(chatId = chat.id))
-                _ <- create match {
-                  case Left(err) => telegram.sendMessage(err.message, chat)
-                  case Right(s)  => telegram.sendMessage(s.message, chat)
-                }
-              } yield ()
-            case Right(settings) => telegram.sendMessage(settings.message, chat)
+        case s"/set_line_del ${d: String}" =>
+          getSeparator(d) match {
+            case Some(ch) =>
+              setSettingsAndSendMessage(
+                storage,
+                telegram,
+                chat,
+                UserSettings(chat.id, lineDelimiter = Some(ch)),
+              )
+            case None => telegram.sendMessage(incorrectDelimiter("/set_line_del_desc"), chat)
           }
-        } yield ()
 
-      case "/set_line_del_desc" => telegram.sendMessage(setLineDelDescription, chat)
+        case s"/set_del_in_row ${d: String}" =>
+          getSeparator(d) match {
+            case Some(ch) =>
+              setSettingsAndSendMessage(
+                storage,
+                telegram,
+                chat,
+                UserSettings(chat.id, inRowDelimiter = Some(ch)),
+              )
+            case None => telegram.sendMessage(incorrectDelimiter("/set_del_in_row_desc"), chat)
+          }
 
-      case "/set_del_in_row_desc" => telegram.sendMessage(setDelInRowDescription, chat)
+        case s"/set_data_model ${model: String}" =>
+          parseDataModel(model) match {
+            case name :: address :: info :: Nil =>
+              setSettingsAndSendMessage(
+                storage,
+                telegram,
+                chat,
+                UserSettings(chat.id, nameCol = name, addrCol = address, infoCol = info),
+              )
+            case name :: address :: Nil =>
+              setSettingsAndSendMessage(
+                storage,
+                telegram,
+                chat,
+                UserSettings(chat.id, nameCol = name, addrCol = address),
+              )
+            case _ =>
+              telegram.sendMessage("Структура данных указана некорректно! Подробнее /set_data_model_desc", chat)
+          }
 
-      case "/set_data_model_desc" => telegram.sendMessage(setDataModelDescription, chat)
+        case s"/set_single_data_model ${model: String} ${city: String}" =>
+          if (model != "L" & model != "R")
+            telegram.sendMessage(
+              "Неверно указан параметр! Может принимать значение только 'L' или 'R'. Подробнее /set_data_model_desc",
+              chat,
+            )
+          else if (city.isEmpty) telegram.sendMessage("Необходимо указать город!", chat)
+          else {
+            setSettingsAndSendMessage(
+              storage,
+              telegram,
+              chat,
+              UserSettings(chat.id, addrCol = if (model == "L") Some(leftPart) else Some(rightPart), city = Some(city)),
+            )
+          }
 
-      case "/parse_text_desc" => telegram.sendMessage(parseTextDescription, chat)
+        case "/settings" =>
+          for {
+            settings <- storage.getSettings(chat.id)
+            _ <- settings match {
+              case Left(_) =>
+                for {
+                  create <- storage.createUserSettings(defaultUserSettings.copy(chatId = chat.id))
+                  _ <- create match {
+                    case Left(err) => telegram.sendMessage(err.message, chat)
+                    case Right(s)  => telegram.sendMessage(s.message, chat)
+                  }
+                } yield ()
+              case Right(settings) => telegram.sendMessage(settings.message, chat)
+            }
+          } yield ()
 
-      case s"/set_line_del" =>
-        telegram.sendMessage("Эта команда должна использоваться с параметром. Подробнее /set_line_del_desc", chat)
+        case "/set_line_del_desc" => telegram.sendMessage(setLineDelDescription, chat)
 
-      case s"/set_del_in_row" =>
-        telegram.sendMessage("Эта команда должна использоваться с параметром. Подробнее /set_del_in_row_desc", chat)
+        case "/set_del_in_row_desc" => telegram.sendMessage(setDelInRowDescription, chat)
 
-      case "/help" => telegram.sendMessage(helpResponse, chat)
-      case _       => telegram.sendMessage(s"Неизвестная команда '$message'", chat)
+        case "/set_data_model_desc" => telegram.sendMessage(setDataModelDescription, chat)
+
+        case "/parse_text_desc" => telegram.sendMessage(parseTextDescription, chat)
+
+        case s"/set_line_del" =>
+          telegram.sendMessage("Эта команда должна использоваться с параметром. Подробнее /set_line_del_desc", chat)
+
+        case s"/set_del_in_row" =>
+          telegram.sendMessage("Эта команда должна использоваться с параметром. Подробнее /set_del_in_row_desc", chat)
+
+        case "/help" => telegram.sendMessage(helpResponse, chat)
+        case _ =>
+          val mess = if (message.length > 100) s"${message.substring(0, 99)}..." else message
+          telegram.sendMessage(s"Неизвестная команда '$mess'", chat)
+      }
     }
+  }
 
   def getSeparator(in: String): Option[Char] =
     if (in == """\t""") Some('\t')
@@ -266,9 +272,9 @@ object TextCommandHandler {
       |   1) Убедитесь, что Ваши данные (файл или текст) соответствуют настройкам бота. Если нет, то:
       |       а) отредактируйте данные
       |           ИЛИ
-      |       б) отредактируйте настройки бота      |
-      |   2) Передайте данные боту (отправьте файл или сообщение)      |
-      |   3) Получите ссылку на карту      |
+      |       б) отредактируйте настройки бота
+      |   2) Передайте данные боту (отправьте файл или сообщение)
+      |   3) Получите ссылку на карту
       |   4) Готово! Вы прекрасны!
       |
       |Информация о доступных командах /help
