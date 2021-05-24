@@ -7,7 +7,7 @@ object Deps {
     val circe          = "0.12.3"
     val fs2            = "2.5.0"
     val doobie         = "0.12.1"
-    val flyway = "7.9.1"
+    val flyway         = "7.9.1"
     val logback        = "1.2.3"
     val scalatest      = "3.2.7"
     val testContainers = "0.39.4"

@@ -31,7 +31,6 @@ object Router {
   private def path(directory: String, mapId: String) = s"$directory/$mapId.json"
   private def url(chat: Chat, mapId: String)         = s"$host/map.html?chat_id=${chat.id}&map_id=$mapId"
 
-  // represent a way of processing some type of update from user
   final case class TelegramUpdateRoute[O](name: String)(val definition: PartialFunction[Update, O]) {
     override def toString: String = name
   }
@@ -75,7 +74,7 @@ object Router {
                   enrichedNotes <- geocoder.enrichNotes(notesWithInfo.notes)
                   _ <- enrichedNotes match {
                     case Left(err)            => telegram.sendMessage(err.message, chat)
-                    case Right(notesWithInfo) => createAndSendHtml(telegram, chat, notesWithInfo)
+                    case Right(notesWithInfo) => createFileAndSendLink(telegram, chat, notesWithInfo)
                   }
                 } yield ()
             }
@@ -100,7 +99,7 @@ object Router {
       content <- telegram.downloadFile(file.path.get)
     } yield content
 
-  def createAndSendHtml[F[_]: Sync: ContextShift](
+  def createFileAndSendLink[F[_]: Sync: ContextShift](
       telegram: TelegramApi[F],
       chat: Chat,
       notesWithInfo: NotesWithInfo,

@@ -4,7 +4,7 @@ import cats.effect.{ContextShift, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import ru.dins.scalaschool.users_maps
-import ru.dins.scalaschool.users_maps.Router.createAndSendHtml
+import ru.dins.scalaschool.users_maps.Router.createFileAndSendLink
 import ru.dins.scalaschool.users_maps.maps.GeocoderApi
 import ru.dins.scalaschool.users_maps.storage.Storage
 import ru.dins.scalaschool.users_maps.telegram.TelegramApi
@@ -39,7 +39,7 @@ final case class HtmlHandler[F[_]: Sync: ContextShift]() {
             enrichedNotes <- geocoder.enrichNotes(notesWithInfo.notes)
             _ <- enrichedNotes match {
               case Left(err)            => telegram.sendMessage(err.message, chat)
-              case Right(notesWithInfo) => createAndSendHtml(telegram, chat, notesWithInfo)
+              case Right(notesWithInfo) => createFileAndSendLink(telegram, chat, notesWithInfo)
             }
           } yield ()
       }

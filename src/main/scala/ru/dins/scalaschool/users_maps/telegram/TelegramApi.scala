@@ -1,6 +1,6 @@
 package ru.dins.scalaschool.users_maps.telegram
 
-import cats.effect.{Blocker, ContextShift, Sync}
+import cats.effect.{ContextShift, Sync}
 import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
@@ -10,13 +10,9 @@ import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.implicits._
 import org.slf4j.LoggerFactory
-import model.TelegramModel.TelegramModelDecoders._
-import model.TelegramModel.{Success, Update}
-import model.{Chat, Offset, TelegramModel, File => myFile}
-
-import java.io.File
-import java.util.concurrent.Executors
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import ru.dins.scalaschool.users_maps.telegram.model.TelegramModel.TelegramModelDecoders._
+import ru.dins.scalaschool.users_maps.telegram.model.TelegramModel.{Success, Update}
+import ru.dins.scalaschool.users_maps.telegram.model.{Chat, Offset, TelegramModel, File => myFile}
 
 trait TelegramApi[F[_]] extends Http4sClientDsl[F] {
 
@@ -38,8 +34,6 @@ trait TelegramApi[F[_]] extends Http4sClientDsl[F] {
   def getFile(id: String): F[myFile]
 
   def downloadFile(path: String): F[String]
-
-  def sendDocument(chat: Chat, document: File): F[Unit]
 }
 
 object TelegramApi {
@@ -97,36 +91,6 @@ object TelegramApi {
       val endpoint = uri"""https://api.telegram.org""" / "file" / s"bot$secret" / path
 
       client.expect[String](Request[F](uri = endpoint, method = Method.GET))
-    }
-
-    override def sendDocument(
-        chat: Chat,
-        document: File,
-    ): F[Unit] = {
-      implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(2))
-      import org.http4s.MediaType
-      import org.http4s.headers.`Content-Type`
-      import org.http4s.multipart.{Multipart, Part}
-
-      val endpoint        = uri / "sendDocument"
-      val sendDocumentUri = endpoint =? Map("chat_id" -> List(chat.id.toString))
-
-      val multipart = Multipart[F](
-        Vector(
-          Part.fileData(
-            "document",
-            document,
-            Blocker.liftExecutionContext(ec),
-            `Content-Type`(MediaType.multipart.`form-data`),
-          ),
-        ),
-      )
-
-      val req = Request[F](method = Method.POST, uri = sendDocumentUri)
-        .withEntity(multipart)
-        .withHeaders(multipart.headers)
-
-      client.expect[Unit](req)
     }
   }
 }

@@ -28,19 +28,3 @@ ThisBuild / scalacOptions ++= Seq(
   "-Ypatmat-exhaust-depth",
   "40",
 )
-
-//enablePlugins(FlywayPlugin)
-//lazy val postgres = "postgres"
-//
-//lazy val postgresHost: String = sys.env.getOrElse("DB_HOST", postgres)
-//lazy val postgresPort: String = sys.env.getOrElse("DB_PORT", "5432")
-//lazy val postgresName: String = sys.env.getOrElse("DB_NAME", postgres)
-//lazy val postgresUser: String = sys.env.getOrElse("DB_USER", postgres)
-//lazy val postgresPass: String = sys.env.getOrElse("DB_PASS", postgres)
-//
-////libraryDependencies += "mysql" % "mysql-connector-java" % "6.0.6"
-////flywayUrl := "jdbc:mysql://localhost:3306/test_flyway"
-//flywayUrl := s"jdbc:postgresql://localhost:$postgresPort/$postgresName"
-//flywayUser := postgresUser
-//flywayPassword := postgresPass
-//flywayLocations += "db/migration"

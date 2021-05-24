@@ -33,8 +33,10 @@ object StringParser {
         else if ((direction == rightPart) && (s.length > maxAddrLength)) s.substring(s.length - maxAddrLength)
         else s
 
-      if (direction == leftPart) Right(Note(id = index, s, clippedAddr))
-      else if (direction == rightPart) Right(Note(id = index, s, clippedAddr))
+      val extendedAddr = s"""${us.city.getOrElse("")} $clippedAddr"""
+
+      if (direction == leftPart) Right(Note(id = index, s, extendedAddr))
+      else if (direction == rightPart) Right(Note(id = index, s, extendedAddr))
       else
         Left(s"Строка #$index: ${if (s.length < 100) s else s"${s.substring(0, 99)}..."}")
     } else {

@@ -9,9 +9,8 @@ import doobie.util.transactor.Transactor.Aux
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import ru.dins.scalaschool.users_maps.defaultUserSettings
+import ru.dins.scalaschool.users_maps.{charMeta, defaultUserSettings}
 import ru.dins.scalaschool.users_maps.Models.{ChatAlreadyExistsError, ChatNotFoundInDbError, UserSettings}
-import ru.dins.scalaschool.users_maps.charMeta
 
 import scala.concurrent.ExecutionContext
 
@@ -30,7 +29,20 @@ class PostgresStorageTest extends AnyFlatSpec with Matchers with TestContainerFo
   override def startContainers(): PostgreSQLContainer = {
     val container = super.startContainers()
     val xa        = createTransactor(container)
-    Migrations.migrate(xa).unsafeRunSync()
+
+    sql"""
+      CREATE TABLE IF NOT EXISTS users_settings(
+        chat_id NUMERIC NOT NULL UNIQUE,
+        line_delimiter VARCHAR NOT NULL,
+        in_row_delimiter VARCHAR NOT NULL,
+        name_col NUMERIC,
+        addr_col NUMERIC NOT NULL,
+        info_col NUMERIC,
+        city TEXT,
+        PRIMARY KEY (chat_id)
+      );
+       """.update.run.transact(xa).unsafeRunSync()
+
     container
   }
 

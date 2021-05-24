@@ -69,25 +69,30 @@ class StringParserTest extends AnyFlatSpec with Matchers {
     val singleNote1 = Note(
       1,
       "Address1:Info1 Name _  and more and , and more another information",
-      "Address1:Info1 Name _  and more and , and more ano",
+      "Spb Address1:Info1 Name _  and more and , and more ano",
     )
     val singleNote2 = Note(
       2,
       "Address2 inf NAme another letters, digits, words etc etc",
-      "Address2 inf NAme another letters, digits, words e",
+      "Spb Address2 inf NAme another letters, digits, words e",
     )
     val singleNote3 = Note(
       3,
       "Name3Address3,ERROR",
-      "Name3Address3,ERROR",
+      "Spb Name3Address3,ERROR",
     )
     val s =
       """Address1:Info1 Name _  and more and , and more another information
         |Address2 inf NAme another letters, digits, words etc etc
         |Name3Address3,ERROR""".stripMargin
-    StringParser.parse(s, defaultUserSettings.copy(nameCol = None, addrCol = Some(99))) shouldBe Right(
+    StringParser.parse(
+      s,
+      defaultUserSettings.copy(nameCol = None, addrCol = Some(99), city = Some("Spb")),
+    ) shouldBe Right(
       NotesWithInfo(List(singleNote1, singleNote2, singleNote3), StringParser.parseNoErrReport(3, 3)),
     )
   }
 
+  //Right(NotesWithInfo(List(Note(1,Address1:Info1 Name _  and more and , and more another information,Address1:Info1 Name _  and more and , and more ano,None,None), Note(2,Address2 inf NAme another letters, digits, words etc etc,Address2 inf NAme another letters, digits, words e,None,None), Note(3,Name3Address3,ERROR,Name3Address3,ERROR,None,None)),Данные успешно разобраны (3 из 3)!
+  //Right(NotesWithInfo(List(Note(1,Address1:Info1 Name _  and more and , and more another information, Address1:Info1 Name _  and more and , and more ano,None,None), Note(2,Address2 inf NAme another letters, digits, words etc etc, Address2 inf NAme another letters, digits, words e,None,None), Note(3,Name3Address3,ERROR, Name3Address3,ERROR,None,None)),Данные успешно разобраны (3 из 3)!
 }

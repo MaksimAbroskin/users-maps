@@ -1,4 +1,4 @@
-CREATE TABLE users_settings(
+CREATE TABLE IF NOT EXISTS users_settings(
         chat_id NUMERIC NOT NULL UNIQUE,
         line_delimiter VARCHAR NOT NULL,
         in_row_delimiter VARCHAR NOT NULL,

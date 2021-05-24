@@ -4,7 +4,6 @@ import ru.dins.scalaschool.users_maps.maps.Coordinates
 
 object Models {
 
-  // represent location with name, address and geographical coordinates
   case class Note(
       id: Int,
       name: String,
@@ -52,13 +51,17 @@ object Models {
       nameCol: Option[Int] = None,
       addrCol: Option[Int] = None,
       infoCol: Option[Int] = None,
+      city: Option[String] = None,
   ) {
-    private def parseAddrCol(a: Option[Int]) = a match {
-      case Some(value) =>
-        if (value == leftPart) "Вся строка (адрес слева)"
-        else if (value == rightPart) "Вся строка (адрес справа)"
-        else s"$value"
-      case None => "Не определён"
+    private def parseAddrCol(a: Option[Int]) = {
+      val cityS = city.getOrElse("")
+      a match {
+        case Some(value) =>
+          if (value == leftPart) s"Вся строка (адрес слева). Город: $cityS"
+          else if (value == rightPart) s"Вся строка (адрес справа). Город: $cityS"
+          else s"$value"
+        case None => "Не определён"
+      }
     }
 
     val message: String =
