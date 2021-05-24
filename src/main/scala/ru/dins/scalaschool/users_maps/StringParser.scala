@@ -76,17 +76,24 @@ object StringParser {
     val notes = rows.toList.zipWithIndex
       .map(row => parseRow(row, us))
 
-    val result     = notes.flatMap(x => x.toOption)
+    val result = notes.flatMap(x => x.toOption)
+    val tooMuch =
+      if (result.length > oneMessageLimit)
+        s"Данные содержат более $oneMessageLimit записей!\nОбработаны будут только первые $oneMessageLimit"
+      else ""
     val errExample = notes.find(_.isLeft).flatMap(_.swap.toOption).getOrElse("")
 
-    if (result.isEmpty) Left(FileParsingError(errExample))
+    val limitedResult = result.take(oneMessageLimit)
+
+    if (limitedResult.isEmpty) Left(FileParsingError(errExample))
     else {
       Right(
         NotesWithInfo(
-          result,
-          if (result.length != notes.length)
-            parseWithErrReport(result.length, notes.length, errExample)
-          else parseNoErrReport(result.length, notes.length),
+          limitedResult,
+          if (tooMuch.nonEmpty) tooMuch
+          else if (limitedResult.length != notes.length)
+            parseWithErrReport(limitedResult.length, notes.length, errExample)
+          else parseNoErrReport(limitedResult.length, notes.length),
         ),
       )
     }

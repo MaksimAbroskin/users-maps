@@ -85,6 +85,11 @@ object Router {
             _ <- Sync[F].delay(routerLogger.info(s"received unprocessed text message from chat: $chat"))
             _ <- telegram.sendMessage("Необрабатываемое сообщение", chat)
           } yield ()
+
+        case _ =>
+          for {
+            _ <- Sync[F].delay(routerLogger.info(s"received unprocessed message"))
+          } yield ()
       }
 
     Router(messageOnlyRoute)

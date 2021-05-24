@@ -4,7 +4,6 @@ import io.circe.{Decoder, HCursor}
 
 case class File(id: String, path: Option[String])
 
-//TODO delete resultHelper
 object File {
   case class ResultHelper(id: String, path: Option[String])
 
