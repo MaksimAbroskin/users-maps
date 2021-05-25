@@ -12,7 +12,7 @@ import ru.dins.scalaschool.users_maps.telegram.model.Chat
 import ru.dins.scalaschool.users_maps.StringParser
 
 final case class HtmlHandler[F[_]: Sync: ContextShift]() {
-  def stringToHtml(
+  def stringToLink(
       telegram: TelegramApi[F],
       geocoder: GeocoderApi[F],
       storage: Storage[F],

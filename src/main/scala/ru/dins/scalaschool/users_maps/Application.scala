@@ -25,9 +25,7 @@ object Application extends IOApp {
   }
 
   val localTestToken: Option[String] = Some("1757140027:AAEswSrV0FWwDyrkDfwo4KAsrIf9zsS6cZw")
-  val productToken: Option[String]   = Some("1792790353:AAE22Vk7SgPNjXaJ8oH5TLqn_d9KWCbBY54")
-
-  val addedToken: Option[String] = Some("1743888075:AAEd2HQFfU2nvN3qB5G-diDn5JCBHrpajJ0")
+  val productToken: Option[String]   = Some("1829681477:AAF7oQ7XrHQZ7mrYCUPSf-PV-89PcVbtBEU")
 
   def app[F[_]: ConcurrentEffect: ContextShift: Timer](xa: Aux[F, Unit])(implicit blocker: Blocker): F[ExitCode] =
     for {

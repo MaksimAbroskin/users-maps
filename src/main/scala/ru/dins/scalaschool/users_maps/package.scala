@@ -4,7 +4,7 @@ import doobie.util.meta.Meta
 import ru.dins.scalaschool.users_maps.Models.UserSettings
 
 package object users_maps {
-  val oneMessageLimit = 100
+  val oneMessageLimit = 50
 
   val maxAddrLength = 50
   val leftPart      = 99

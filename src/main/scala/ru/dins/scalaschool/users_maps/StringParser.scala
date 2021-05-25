@@ -23,8 +23,9 @@ object StringParser {
       row: (String, Int),
       us: UserSettings,
   ): Either[String, Note] = {
-    val s     = row._1
-    val index = row._2 + 1
+    val s       = row._1
+    val index   = row._2 + 1
+    val optCity = us.city.getOrElse("")
 
     if (us.addrCol.isDefined & us.nameCol.isEmpty & us.infoCol.isEmpty) {
       val direction = us.addrCol.getOrElse(99)
@@ -33,7 +34,7 @@ object StringParser {
         else if ((direction == rightPart) && (s.length > maxAddrLength)) s.substring(s.length - maxAddrLength)
         else s
 
-      val extendedAddr = s"""${us.city.getOrElse("")} $clippedAddr"""
+      val extendedAddr = s"""$optCity $clippedAddr"""
 
       if (direction == leftPart) Right(Note(id = index, s, extendedAddr))
       else if (direction == rightPart) Right(Note(id = index, s, extendedAddr))
@@ -50,9 +51,9 @@ object StringParser {
       }
 
       (addr, name, info) match {
-        case (Some(a), Some(n), Some(i)) => Right(Note(id = index, n, a, Some(i)))
-        case (Some(a), Some(n), None)    => Right(Note(id = index, n, a))
-        case _                           => Left(s"Строка #$index: ${if (s.length < 100) row._1 else s"${s.substring(0, 99)}..."}")
+        case (Some(a), Some(n), Some(i)) => Right(Note(id = index, n, s"$optCity $a".trim, Some(i)))
+        case (Some(a), Some(n), None)    => Right(Note(id = index, n, s"$optCity $a".trim))
+        case _                           => Left(s"Строка #$index: ${if (s.length < 100) s else s"${s.substring(0, 99)}..."}")
       }
     }
   }

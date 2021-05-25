@@ -3,7 +3,6 @@ package ru.dins.scalaschool.users_maps.telegram
 import cats.effect.{ContextShift, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import cats.syntax.applicativeError._
 import ru.dins.scalaschool.users_maps.Models.{ErrorMessage, UserSettings}
 import ru.dins.scalaschool.users_maps.maps.GeocoderApi
 import ru.dins.scalaschool.users_maps.maps.yandex.HtmlHandler
@@ -14,6 +13,15 @@ import ru.dins.scalaschool.users_maps._
 import scala.util.Try
 
 object TextCommandHandler {
+  // commands for copy-paste to botFather
+  //start - Initialize bot. If this is your first time
+  //settings - Settings of your bot
+  //help - Available commands
+  //set_line_del_desc - Info how to set new line delimiter
+  //set_del_in_row_desc - Info how to set new delimiter in row
+  //set_data_model_desc - Info how to set data model of your file
+  //set_city_desc - Info how to set search city
+  //parse_text_desc - Info about parsing from chat
 
   private def incorrectDelimiter(link: String) =
     s"""Указан некорректный разделитель! Подробнее $link""".stripMargin
@@ -35,8 +43,7 @@ object TextCommandHandler {
 
         case s"//${s: String}" =>
           HtmlHandler()
-            .stringToHtml(telegram, geocoder, storage, chat, s)
-            .handleErrorWith(_ => Sync[F].delay(println("File didn't create 3")))
+            .stringToLink(telegram, geocoder, storage, chat, s)
 
         case s"/set_line_del ${d: String}" =>
           getSeparator(d) match {
@@ -82,21 +89,28 @@ object TextCommandHandler {
               telegram.sendMessage("Структура данных указана некорректно! Подробнее /set_data_model_desc", chat)
           }
 
-        case s"/set_single_data_model ${model: String} ${city: String}" =>
+        case s"/set_single_data_model ${model: String}" =>
           if (model != "L" & model != "R")
             telegram.sendMessage(
               "Неверно указан параметр! Может принимать значение только 'L' или 'R'. Подробнее /set_data_model_desc",
               chat,
             )
-          else if (city.isEmpty) telegram.sendMessage("Необходимо указать город!", chat)
           else {
             setSettingsAndSendMessage(
               storage,
               telegram,
               chat,
-              UserSettings(chat.id, addrCol = if (model == "L") Some(leftPart) else Some(rightPart), city = Some(city)),
+              UserSettings(chat.id, addrCol = if (model == "L") Some(leftPart) else Some(rightPart)),
             )
           }
+
+        case s"/set_city ${city: String}" =>
+          setSettingsAndSendMessage(
+            storage,
+            telegram,
+            chat,
+            UserSettings(chat.id, city = Some(city)),
+          )
 
         case "/settings" =>
           for {
@@ -120,6 +134,8 @@ object TextCommandHandler {
 
         case "/set_data_model_desc" => telegram.sendMessage(setDataModelDescription, chat)
 
+        case "/set_city_desc" => telegram.sendMessage(setCityDescription, chat)
+
         case "/parse_text_desc" => telegram.sendMessage(parseTextDescription, chat)
 
         case s"/set_line_del" =>
@@ -140,7 +156,7 @@ object TextCommandHandler {
     }
   }
 
-  def getSeparator(in: String): Option[Char] =
+  private def getSeparator(in: String): Option[Char] =
     if (in == """\t""") Some('\t')
     else if (in == """\n""") Some('\n')
     else if (in.length == 1 && !in.head.isLetterOrDigit) Some(in.charAt(0))
@@ -188,6 +204,7 @@ object TextCommandHandler {
       |   /set_data_model_desc - Инструкция: как сменить модели данных
       |   /set_line_del_desc - Инструкция: как задать межстрочный разделитель
       |   /set_del_in_row_desc - Инструкция, как задать разделитель между полями одной записи
+      |   /set_city_desc - Инструкция, как задать город для поиска
       |   /parse_text_desc - Инструкция, как разобрать данные прямо из текстового сообщения, а не из файла
       |   /help - Перечень доступных команд""".stripMargin
 
@@ -224,6 +241,16 @@ object TextCommandHandler {
       |/set_del_in_row \t
       |/set_del_in_row :""".stripMargin
 
+  private val setCityDescription =
+    """   Задание города для улучшения качества поиска.
+      |Если в ваших адресах нет явного указания города, рекомендуется задать этот параметр.
+      |Укажите '-' в качестве параметра, если хотите удалить город.
+      |Синтаксис: /set_city <город>
+      |
+      |   Примеры:
+      |/set_city СПб
+      |/set_city -""".stripMargin
+
   private val setDataModelDescription =
     """Задание структуры Ваших данных
       |
@@ -244,24 +271,23 @@ object TextCommandHandler {
       |
       |
       |   2) Слабо структурированные данные:
-      |Синтаксис: /set_single_data_model <параметр> <город>
+      |Синтаксис: /set_single_data_model <параметр>
       |<параметр> указывает, в какой части каждой записи находится адрес объекта.
-      |<город> - обязательный параметр для повышения точности поиска
       |Возможные значения <параметра>
       | - 'L' - адрес в левой части
       | - 'R' - адрес в правой части
       |
       |   Примеры:
-      |/set_single_data_model L Санкт-Петербург - для данных вида
+      |/set_single_data_model L - для данных вида
       |Невский пр. 30, Контора "Рога и копыта"
       |
       |   Примеры:
-      |/set_single_data_model R Новосибирск - для данных вида
+      |/set_single_data_model R - для данных вида
       |Контора "Рога и копыта", находящаяся по адресу Вокзальная магистраль, дом 14""".stripMargin
 
   private val startMessage =
     s"""   Привет! Я бот и я могу:
-      |1) Создавать карту из файла с адресами
+      |1) Создавать карту из файла с адресами (.txt, .csv)
       |2) Создавать карту из текстового сообщения с адресами
       |
       |Чтобы я хорошо делал свою работу, необходимо:

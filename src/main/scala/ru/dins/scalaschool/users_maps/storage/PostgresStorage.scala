@@ -7,7 +7,7 @@ import doobie.postgres.sqlstate
 import doobie.util.fragments.setOpt
 import doobie.util.transactor.Transactor.Aux
 import ru.dins.scalaschool.users_maps.Models.{ChatAlreadyExistsError, ChatNotFoundInDbError, ErrorMessage, UserSettings}
-import ru.dins.scalaschool.users_maps.{charMeta, leftPart, rightPart}
+import ru.dins.scalaschool.users_maps.charMeta
 
 case class PostgresStorage[F[_]: Sync](xa: Aux[F, Unit]) extends Storage[F]() {
 
@@ -48,11 +48,7 @@ case class PostgresStorage[F[_]: Sync](xa: Aux[F, Unit]) extends Storage[F]() {
     val infoOpt =
       if (nameOpt.isDefined & addrOpt.isDefined & us.infoCol.isEmpty) Some(fr"info_col = null")
       else us.infoCol.map(x => fr"info_col = $x")
-
-    val cityOpt =
-      if (us.addrCol.isDefined && (us.addrCol.get == leftPart || (us.addrCol.get == rightPart)))
-        us.city.map(c => fr"city = $c")
-      else Some(fr"city = null")
+    val cityOpt = us.city.map(c => if (c.trim.matches("-")) fr"city = null" else fr"city = $c")
 
     val request = fr"UPDATE users_settings" ++ setOpt(
       lineDelimiterOpt,

@@ -53,16 +53,14 @@ object Models {
       infoCol: Option[Int] = None,
       city: Option[String] = None,
   ) {
-    private def parseAddrCol(a: Option[Int]) = {
-      val cityS = city.getOrElse("")
+    private def parseAddrCol(a: Option[Int]) =
       a match {
         case Some(value) =>
-          if (value == leftPart) s"Вся строка (адрес слева). Город: $cityS"
-          else if (value == rightPart) s"Вся строка (адрес справа). Город: $cityS"
+          if (value == leftPart) s"Вся строка (адрес слева)"
+          else if (value == rightPart) s"Вся строка (адрес справа)"
           else s"$value"
         case None => "Не определён"
       }
-    }
 
     val message: String =
       s"""Текущие настройки:
@@ -76,7 +74,9 @@ object Models {
          |Структура данных. Подробнее /set_data_model_desc:
          |  ${nameCol.getOrElse("Не определён")} - Название
          |  ${parseAddrCol(addrCol)} - Адрес
-         |  ${infoCol.getOrElse("Не определён")} - Дополнительная информация (опционально)""".stripMargin
+         |  ${infoCol.getOrElse("Не определён")} - Дополнительная информация (опционально)
+         |
+         |  ${city.getOrElse("Не определён")} - Город (опционально). Подробнее /set_city_desc """.stripMargin
   }
 
 }
