@@ -10,12 +10,12 @@ lazy val `users-maps` = (project in file("."))
     dockerRepository := Some("eu.gcr.io/dins-scala-school"),
     Docker / version := s"${git.gitHeadCommit.value.map(_.take(7)).getOrElse("UNKNOWN")}",
     dockerUpdateLatest := true,
-    Universal / mappings += (sourceDirectory.value / "main" / "resources" / "map.html", "resources/map.html")
+    Universal / mappings += (sourceDirectory.value / "main" / "resources" / "map.html", "resources/map.html"),
   )
   .enablePlugins(DockerPlugin, JavaAppPackaging)
 
 lazy val dependencies =
-  (cats ++ http4s ++ circe ++ fs2 ++ doobie ++ tests ++ testContainers ++ mock) :+ logback :+ flyway
+  (cats ++ http4s ++ circe ++ fs2 ++ doobie ++ tests ++ testContainers) :+ logback :+ flyway
 
 ThisBuild / scalacOptions ++= Seq(
   "-Xlint:unused",

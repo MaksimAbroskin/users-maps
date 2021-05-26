@@ -1,1 +1,0 @@
-myToken = "1523218139:AAHlQgAo5Ll59eteKS2AiAbxjlVZb4eVGTk"

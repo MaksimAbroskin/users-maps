@@ -24,13 +24,12 @@ object Application extends IOApp {
     app[IO](Database.xa)
   }
 
-  val localTestToken: Option[String] = Some("1757140027:AAEswSrV0FWwDyrkDfwo4KAsrIf9zsS6cZw")
-  val productToken: Option[String]   = Some("1829681477:AAF7oQ7XrHQZ7mrYCUPSf-PV-89PcVbtBEU")
+  val botToken: Option[String] = Some("1829681477:AAF7oQ7XrHQZ7mrYCUPSf-PV-89PcVbtBEU")
 
   def app[F[_]: ConcurrentEffect: ContextShift: Timer](xa: Aux[F, Unit])(implicit blocker: Blocker): F[ExitCode] =
     for {
       _     <- Sync[F].delay(logger.info(s"Starting service"))
-      token <- Sync[F].fromOption(productToken, new IllegalArgumentException("can't find bot token"))
+      token <- Sync[F].fromOption(botToken, new IllegalArgumentException("can't find bot token"))
       _     <- Utils.copyFile[F]("/opt/docker/resources/map.html", "/home/maps/map.html")
       _ <- (for {
         _ <- BlazeServerBuilder[F](executionContext)

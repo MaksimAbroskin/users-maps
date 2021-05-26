@@ -16,19 +16,8 @@ import ru.dins.scalaschool.users_maps.telegram.model.{Chat, Offset, TelegramMode
 
 trait TelegramApi[F[_]] extends Http4sClientDsl[F] {
 
-  /** Stream of updates starting from offset [[ru.dins.scalaschool.users_maps.telegram.model.Offset]]
-    *
-    * @param startFrom offset to start from
-    * @return stream of updates
-    */
   def getUpdates(startFrom: Offset): Stream[F, Update]
 
-  /** Send a text message
-    *
-    * @param text text to send
-    * @param chat destination chat
-    * @return
-    */
   def sendMessage(text: String, chat: Chat): F[Unit]
 
   def getFile(id: String): F[myFile]
@@ -75,7 +64,6 @@ object TelegramApi {
       val endpoint       = uri / "sendMessage"
       val sendMessageUri = endpoint =? Map("chat_id" -> List(chat.id.toString), "text" -> List(text))
 
-      // todo parse response and retry on failure
       client.expect[Unit](Request[F](uri = sendMessageUri, method = Method.GET))
     }
 

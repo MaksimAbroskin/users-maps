@@ -11,7 +11,6 @@ object Deps {
     val logback        = "1.2.3"
     val scalatest      = "3.2.7"
     val testContainers = "0.39.4"
-    val scalamock      = "5.1.0"
   }
 
   val cats: Seq[ModuleID] = Seq(
@@ -49,15 +48,11 @@ object Deps {
 
   val tests: Seq[ModuleID] = Seq(
     "org.scalatest" %% "scalatest",
-    "org.scalactic" %% "scalactic",
   ).map(_ % Versions.scalatest)
 
   val testContainers: Seq[ModuleID] = Seq(
     "com.dimafeng" %% "testcontainers-scala-scalatest",
     "com.dimafeng" %% "testcontainers-scala-postgresql",
   ).map(_ % Versions.testContainers)
-
-  val mock: Seq[ModuleID] = Seq("org.scalamock" %% "scalamock")
-    .map(_ % Versions.scalamock)
 
 }
